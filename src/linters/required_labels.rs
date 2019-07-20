@@ -6,6 +6,20 @@ use serde::Deserialize;
 use crate::reporting::{Reporter, Finding};
 use std::collections::HashMap;
 
+/// **What it does:** Checks for missing required labels
+///
+/// **Why is this bad?** Adding labels to your pods helps organizing the cluster and
+/// improves long-term maintainability.
+///
+/// **Known problems:** None
+///
+/// **References**
+/// https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#motivation
+pub(crate) struct RequiredLabels<R: Reporter> {
+    config: Config,
+    reporter: R,
+}
+
 impl<R: Reporter> RequiredLabels<R> {
     pub fn new(config: Config, reporter: R) -> Self {
         RequiredLabels {
@@ -63,9 +77,4 @@ impl Default for Config {
 
 fn default_labels() -> Vec<String> {
     vec!["app".to_string(), "role".to_string()]
-}
-
-pub(crate) struct RequiredLabels<R: Reporter> {
-    config: Config,
-    reporter: R,
 }
