@@ -35,9 +35,11 @@ fn main() {
         .unwrap();
 
     let required = linters::required_labels::RequiredLabels::new(cfg.required_labels.clone(), reporter.clone());
+    let overlapping = linters::overlapping_probes::OverlappingProbes::new(reporter.clone());
 
     for p in pods.items.iter() {
         required.pod(p);
+        overlapping.pod(p);
     }
 
     let cli = Cli {};

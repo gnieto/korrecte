@@ -27,6 +27,11 @@ impl Finding {
         }
     }
 
+    pub fn add_metadata(mut self, key: String, value: String) -> Self {
+        self.lint_metadata.insert(key, value);
+        self
+    }
+
     pub fn with_metadata(mut self, lint_meta: HashMap<String, String>) -> Self {
         self.lint_metadata = lint_meta;
         self
