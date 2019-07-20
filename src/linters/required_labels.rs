@@ -1,21 +1,24 @@
-use super::Lint;
+use super::{Lint, LintSpec, Group};
 
 use kube::api::Object;
 use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
-
-pub(crate) struct RequiredLabels {
-    required_labels: Vec<String>,
-}
+use serde::Deserialize;
 
 impl RequiredLabels {
-    pub fn new(required_labels: Vec<String>) -> Self {
+    pub fn new(config: Config) -> Self {
         RequiredLabels {
-            required_labels,
+            config,
         }
     }
 }
 
 impl Lint for RequiredLabels {
+    fn spec(&self) -> LintSpec {
+        LintSpec {
+            group: Group::Audit,
+        }
+    }
+
     fn pod(&self, pod: &Object<PodSpec, PodStatus>) {
         let current_labels: Vec<String> = pod.metadata
             .labels
@@ -23,13 +26,36 @@ impl Lint for RequiredLabels {
             .cloned()
             .collect();
 
-        let missing_labels: Vec<String> = current_labels.iter()
-            .filter(|label| !self.required_labels.contains(label))
+        let missing_labels: Vec<String> = self.config.labels.iter()
+            .filter(|label| !current_labels.contains(label))
             .cloned()
             .collect();
 
         if !missing_labels.is_empty() {
+            println!("Missing labels: {:?}", missing_labels);
             // Report lint matching
         }
     }
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub(crate) struct Config {
+    #[serde(default = "default_labels")]
+    labels: Vec<String>,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            labels: default_labels(),
+        }
+    }
+}
+
+fn default_labels() -> Vec<String> {
+    vec!["app".to_string(), "role".to_string()]
+}
+
+pub(crate) struct RequiredLabels {
+    config: Config,
 }
