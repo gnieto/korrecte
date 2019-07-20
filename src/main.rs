@@ -1,6 +1,7 @@
 mod linters;
 mod config;
 mod reporting;
+mod view;
 
 use kube::{
     api::Api,
@@ -14,6 +15,8 @@ use std::fs::File;
 use std::io::prelude::*;
 use crate::config::Config;
 use crate::reporting::Reporter;
+use crate::view::cli::Cli;
+use crate::view::View;
 
 fn main() {
     let mut file = File::open("korrecte.toml").unwrap();
@@ -37,10 +40,6 @@ fn main() {
         required.pod(p);
     }
 
-
-    for f in reporter.findings().iter() {
-        println!("Found something on: {}", f.object_metadata().name);
-    }
-
-    println!("Hello, world!");
+    let cli = Cli {};
+    cli.render(&reporter.findings());
 }

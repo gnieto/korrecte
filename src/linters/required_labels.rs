@@ -19,6 +19,7 @@ impl<R: Reporter> Lint for RequiredLabels<R> {
     fn spec(&self) -> LintSpec {
         LintSpec {
             group: Group::Audit,
+            name: "required_labels".to_string(),
         }
     }
 

@@ -16,6 +16,6 @@ pub enum Group {
 
 #[derive(Clone)]
 pub struct LintSpec {
-    group: Group,
+    pub group: Group,
+    pub name: String,
 }
-
