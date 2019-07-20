@@ -2,9 +2,7 @@ use super::{Lint, LintSpec, Group};
 
 use kube::api::{Object, ObjectMeta};
 use k8s_openapi::api::core::v1::{PodSpec, PodStatus, Probe, Container};
-use serde::Deserialize;
 use crate::reporting::{Reporter, Finding};
-use std::collections::HashMap;
 use std::time::Duration;
 
 /// **What it does:** Finds pods which liveness probe *may* execute before all readiness probes has

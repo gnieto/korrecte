@@ -36,10 +36,12 @@ fn main() {
 
     let required = linters::required_labels::RequiredLabels::new(cfg.required_labels.clone(), reporter.clone());
     let overlapping = linters::overlapping_probes::OverlappingProbes::new(reporter.clone());
+    let never = linters::never_restart_with_liveness_probe::NeverRestartWithLivenessProbe::new(reporter.clone());
 
     for p in pods.items.iter() {
         required.pod(p);
         overlapping.pod(p);
+        never.pod(p);
     }
 
     let cli = Cli {};
