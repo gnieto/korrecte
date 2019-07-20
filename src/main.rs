@@ -3,13 +3,11 @@ mod config;
 mod reporting;
 
 use kube::{
-    api::{Api, Informer, WatchEvent, Object},
+    api::Api,
     client::APIClient,
     config as kube_config,
 };
-use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
 use kube::api::ListParams;
-use serde_json;
 use crate::linters::Lint;
 use toml;
 use std::fs::File;
@@ -20,7 +18,7 @@ use crate::reporting::Reporter;
 fn main() {
     let mut file = File::open("korrecte.toml").unwrap();
     let mut buffer = String::new();
-    file.read_to_string(&mut buffer);
+    file.read_to_string(&mut buffer).unwrap();
     let cfg: Config = toml::from_str(&buffer).unwrap();
 
     let reporter = reporting::SingleThreadedReporter::default();
@@ -37,7 +35,6 @@ fn main() {
 
     for p in pods.items.iter() {
         required.pod(p);
-        println!("{:?}", serde_json::to_string(&p.metadata).unwrap());
     }
 
 

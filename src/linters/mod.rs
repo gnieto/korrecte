@@ -1,8 +1,4 @@
-use kube::{
-    api::{Api, Informer, WatchEvent, Object},
-    client::APIClient,
-    config,
-};
+use kube::api::Object;
 use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
 
 pub(crate) mod required_labels;
@@ -10,7 +6,7 @@ pub(crate) mod required_labels;
 pub trait Lint {
     fn spec(&self) -> LintSpec;
 
-    fn pod(&self, pod: &Object<PodSpec, PodStatus>) {}
+    fn pod(&self, _pod: &Object<PodSpec, PodStatus>) {}
 }
 
 #[derive(Clone)]

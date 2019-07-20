@@ -32,14 +32,17 @@ impl Finding {
         self
     }
 
+    #[allow(unused)]
     pub fn spec(&self) -> &LintSpec {
         &self.spec
     }
 
+    #[allow(unused)]
     pub fn object_metadata(&self) -> &ObjectMeta {
         &self.object_metadata
     }
 
+    #[allow(unused)]
     pub fn lint_metadata(&self) -> &HashMap<String, String> {
         &self.lint_metadata
     }
@@ -57,8 +60,7 @@ impl Reporter for SingleThreadedReporter {
     }
 
     fn findings(&self) -> Vec<Finding> {
-        let mut guard = self.findings.borrow();
-
+        let guard = self.findings.borrow();
         guard.deref().clone()
     }
 }
