@@ -3,16 +3,19 @@ use super::{Lint, LintSpec, Group};
 use kube::api::Object;
 use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
 use serde::Deserialize;
+use crate::reporting::{Reporter, Finding};
+use std::collections::HashMap;
 
-impl RequiredLabels {
-    pub fn new(config: Config) -> Self {
+impl<R: Reporter> RequiredLabels<R> {
+    pub fn new(config: Config, reporter: R) -> Self {
         RequiredLabels {
             config,
+            reporter,
         }
     }
 }
 
-impl Lint for RequiredLabels {
+impl<R: Reporter> Lint for RequiredLabels<R> {
     fn spec(&self) -> LintSpec {
         LintSpec {
             group: Group::Audit,
@@ -32,8 +35,13 @@ impl Lint for RequiredLabels {
             .collect();
 
         if !missing_labels.is_empty() {
-            println!("Missing labels: {:?}", missing_labels);
-            // Report lint matching
+            let mut metadata = HashMap::new();
+            metadata.insert("missing_labels".to_string(), format!("{:?}", missing_labels));
+
+            let finding = Finding::new(self.spec().clone(), pod.metadata.clone())
+                .with_metadata(metadata);
+
+            self.reporter.report(finding);
         }
     }
 }
@@ -56,6 +64,7 @@ fn default_labels() -> Vec<String> {
     vec!["app".to_string(), "role".to_string()]
 }
 
-pub(crate) struct RequiredLabels {
+pub(crate) struct RequiredLabels<R: Reporter> {
     config: Config,
+    reporter: R,
 }

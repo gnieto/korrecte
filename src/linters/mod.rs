@@ -13,10 +13,12 @@ pub trait Lint {
     fn pod(&self, pod: &Object<PodSpec, PodStatus>) {}
 }
 
+#[derive(Clone)]
 pub enum Group {
     Audit,
 }
 
+#[derive(Clone)]
 pub struct LintSpec {
     group: Group,
 }
