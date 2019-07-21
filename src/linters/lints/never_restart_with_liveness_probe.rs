@@ -1,4 +1,4 @@
-use super::{Lint, LintSpec, Group};
+use crate::linters::{Lint, LintSpec, Group};
 
 use kube::api::Object;
 use k8s_openapi::api::core::v1::{PodSpec, PodStatus};

@@ -31,9 +31,9 @@ fn main() {
         .list(&ListParams::default())
         .unwrap();
 
-    let required = linters::required_labels::RequiredLabels::new(cfg.required_labels.clone(), reporter.clone());
-    let overlapping = linters::overlapping_probes::OverlappingProbes::new(reporter.clone());
-    let never = linters::never_restart_with_liveness_probe::NeverRestartWithLivenessProbe::new(reporter.clone());
+    let required = linters::lints::required_labels::RequiredLabels::new(cfg.required_labels.clone(), reporter.clone());
+    let overlapping = linters::lints::overlapping_probes::OverlappingProbes::new(reporter.clone());
+    let never = linters::lints::never_restart_with_liveness_probe::NeverRestartWithLivenessProbe::new(reporter.clone());
 
     for p in pods.items.iter() {
         required.pod(p);
