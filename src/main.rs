@@ -19,10 +19,7 @@ use crate::view::cli::Cli;
 use crate::view::View;
 
 fn main() {
-    let mut file = File::open("korrecte.toml").unwrap();
-    let mut buffer = String::new();
-    file.read_to_string(&mut buffer).unwrap();
-    let cfg: Config = toml::from_str(&buffer).unwrap();
+    let cfg: Config = load_config().unwrap_or_default();
 
     let reporter = reporting::SingleThreadedReporter::default();
 
@@ -46,4 +43,29 @@ fn main() {
 
     let cli = Cli {};
     cli.render(&reporter.findings());
+}
+
+fn load_config() -> Result<Config, ConfigError> {
+    let mut file = File::open("korrecte.toml")?;
+    let mut buffer = String::new();
+    file.read_to_string(&mut buffer)?;
+
+    Ok(toml::from_str(&buffer)?)
+}
+
+enum ConfigError {
+    Io(std::io::Error),
+    Serde(toml::de::Error),
+}
+
+impl From<std::io::Error> for ConfigError {
+    fn from(e: std::io::Error) -> Self {
+        ConfigError::Io(e)
+    }
+}
+
+impl From<toml::de::Error> for ConfigError {
+    fn from(e: toml::de::Error) -> Self {
+        ConfigError::Serde(e)
+    }
 }
