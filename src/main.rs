@@ -3,13 +3,7 @@ mod config;
 mod reporting;
 mod view;
 
-use kube::{
-    api::Api,
-    client::APIClient,
-    config as kube_config,
-};
-use kube::api::ListParams;
-use crate::linters::Lint;
+use crate::linters::LintCollection;
 use toml;
 use std::fs::File;
 use std::io::prelude::*;
@@ -17,29 +11,16 @@ use crate::config::Config;
 use crate::reporting::Reporter;
 use crate::view::cli::Cli;
 use crate::view::View;
+use crate::linters::evaluator::OneShotEvaluator;
 
 fn main() {
     let cfg: Config = load_config().unwrap_or_default();
 
     let reporter = reporting::SingleThreadedReporter::default();
 
-    let config = kube_config::load_kube_config().expect("failed to load kubeconfig");
-    let client = APIClient::new(config);
 
-    // Manage pods
-    let pods = Api::v1Pod(client).within("default")
-        .list(&ListParams::default())
-        .unwrap();
-
-    let required = linters::lints::required_labels::RequiredLabels::new(cfg.required_labels.clone(), reporter.clone());
-    let overlapping = linters::lints::overlapping_probes::OverlappingProbes::new(reporter.clone());
-    let never = linters::lints::never_restart_with_liveness_probe::NeverRestartWithLivenessProbe::new(reporter.clone());
-
-    for p in pods.items.iter() {
-        required.pod(p);
-        overlapping.pod(p);
-        never.pod(p);
-    }
+    let list = LintCollection::all(cfg, reporter.clone());
+    OneShotEvaluator::evaluate(list);
 
     let cli = Cli {};
     cli.render(&reporter.findings());
