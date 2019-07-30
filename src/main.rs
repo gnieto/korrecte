@@ -21,7 +21,7 @@ fn main() {
     let reporter = reporting::SingleThreadedReporter::default();
 
     let object_repository = ObjectRepository::new(kube_config::load_kube_config().unwrap()).unwrap();
-    let list = LintCollection::all(cfg, reporter.clone());
+    let list = LintCollection::all(cfg, reporter.clone(), object_repository.clone());
     OneShotEvaluator::evaluate(list, object_repository);
 
     let cli = Cli {};
