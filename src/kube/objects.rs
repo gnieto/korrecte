@@ -3,11 +3,14 @@ use kube::config::Configuration;
 use kube::client::APIClient;
 use kube::Result;
 use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
+use k8s_openapi::api::core::v1::{ServiceSpec, ServiceStatus};
 use std::collections::BTreeMap;
+use serde::de::DeserializeOwned;
 
 #[derive(Clone)]
 pub struct ObjectRepository {
     pods_reflector: Reflector<Object<PodSpec, PodStatus>>,
+    service_reflector: Reflector<Object<ServiceSpec, ServiceStatus>>,
 }
 
 pub struct Identifier {
@@ -25,8 +28,34 @@ impl Identifier {
 impl ObjectRepository {
     pub fn new(kube_config: Configuration) -> Result<Self> {
         let client = APIClient::new(kube_config);
-        let resource = Api::v1Pod(client);
-        let mut pod_reflect = Reflector::new(resource);
+        let pod_reflector = ObjectRepository::initialize_reflector(Api::v1Pod(client.clone()))?;
+        let service_reflector = ObjectRepository::initialize_reflector(Api::v1Service(client))?;
+
+        Ok(ObjectRepository {
+            pods_reflector: pod_reflector,
+            service_reflector,
+        })
+    }
+
+    pub fn pod(&self, id: &Identifier) -> Option<Object<PodSpec, PodStatus>> {
+        Self::find_object(id, &self.pods_reflector)
+    }
+
+    pub fn pods(&self) -> Vec<Object<PodSpec, PodStatus>> {
+        Self::all_objects(&self.pods_reflector)
+    }
+
+    pub fn service(&self, id: &Identifier) -> Option<Object<ServiceSpec, ServiceStatus>> {
+        Self::find_object(id, &self.service_reflector)
+    }
+
+    pub fn services(&self) -> Vec<Object<ServiceSpec, ServiceStatus>> {
+        Self::all_objects(&self.service_reflector)
+    }
+
+
+    fn initialize_reflector<K: 'static + Send + Sync + Clone + DeserializeOwned + KubeObject>(api: Api<K>) -> Result<Reflector<K>> {
+        let mut pod_reflect = Reflector::new(api);
         pod_reflect = pod_reflect.init()?;
         let pod_reflect_updater = pod_reflect.clone();
 
@@ -38,15 +67,13 @@ impl ObjectRepository {
             }
         });
 
-        Ok(ObjectRepository {
-            pods_reflector: pod_reflect,
-        })
+        Ok(pod_reflect)
     }
 
-    pub fn pod(&self, id: &Identifier) -> Option<Object<PodSpec, PodStatus>> {
-        let pods = self.pods_reflector.read().ok()?;
+    fn find_object<K: 'static + Send + Sync + Clone + DeserializeOwned + KubeObject>(id: &Identifier, reflector: &Reflector<K>) -> Option<K> {
+        let objs = reflector.read().ok()?;
 
-        pods.iter()
+        objs.iter()
             .find_map(|o| {
                 if id.matches_with(o.1.meta()) {
                     Some(o.1.clone())
@@ -56,13 +83,11 @@ impl ObjectRepository {
             })
     }
 
-    pub fn pods(&self) -> Vec<Object<PodSpec, PodStatus>> {
-        self.pods_reflector.read()
+    fn all_objects<K: 'static + Send + Sync + Clone + DeserializeOwned + KubeObject>(reflector: &Reflector<K>) -> Vec<K> {
+        reflector.read()
             .unwrap_or(BTreeMap::new())
             .iter()
             .map(|element| element.1.clone())
-            .collect::<Vec<Object<PodSpec, PodStatus>>>()
-
-
+            .collect()
     }
 }

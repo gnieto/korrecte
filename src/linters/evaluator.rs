@@ -10,5 +10,11 @@ impl OneShotEvaluator {
                 lint.pod(pod);
             }
         }
+
+        for svc in object_repository.services().iter() {
+            for lint in list.iter() {
+                lint.service(svc);
+            }
+        }
     }
 }

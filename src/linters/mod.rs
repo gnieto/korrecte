@@ -1,5 +1,6 @@
 use kube::api::Object;
 use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
+use k8s_openapi::api::core::v1::{ServiceSpec, ServiceStatus};
 use crate::config::Config;
 use crate::reporting::Reporter;
 use crate::linters;
@@ -11,6 +12,7 @@ pub trait Lint {
     fn spec(&self) -> LintSpec;
 
     fn pod(&self, _pod: &Object<PodSpec, PodStatus>) {}
+    fn service(&self, _svc: &Object<ServiceSpec, ServiceStatus>) {}
 }
 
 #[derive(Clone)]
