@@ -4,7 +4,7 @@ metadata:
   labels:
     app: hello-node
   name: hello-node-never-restart
-  namespace: default
+  namespace: test
 spec:
   containers:
     - image: gcr.io/hello-minikube-zero-install/hello-node

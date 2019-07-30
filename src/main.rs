@@ -2,6 +2,7 @@ mod linters;
 mod config;
 mod reporting;
 mod view;
+mod kube;
 
 use crate::linters::LintCollection;
 use toml;
@@ -15,9 +16,7 @@ use crate::linters::evaluator::OneShotEvaluator;
 
 fn main() {
     let cfg: Config = load_config().unwrap_or_default();
-
     let reporter = reporting::SingleThreadedReporter::default();
-
 
     let list = LintCollection::all(cfg, reporter.clone());
     OneShotEvaluator::evaluate(list);
