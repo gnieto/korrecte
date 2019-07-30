@@ -1,1 +1,1 @@
-mod objects;
+pub mod objects;

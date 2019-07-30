@@ -13,13 +13,16 @@ use crate::reporting::Reporter;
 use crate::view::cli::Cli;
 use crate::view::View;
 use crate::linters::evaluator::OneShotEvaluator;
+use ::kube::config as kube_config;
+use crate::kube::objects::ObjectRepository;
 
 fn main() {
     let cfg: Config = load_config().unwrap_or_default();
     let reporter = reporting::SingleThreadedReporter::default();
 
+    let object_repository = ObjectRepository::new(kube_config::load_kube_config().unwrap()).unwrap();
     let list = LintCollection::all(cfg, reporter.clone());
-    OneShotEvaluator::evaluate(list);
+    OneShotEvaluator::evaluate(list, object_repository);
 
     let cli = Cli {};
     cli.render(&reporter.findings());
