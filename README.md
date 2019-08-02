@@ -36,4 +36,5 @@ There are some lints that can be parametrized through a TOML file. At the moment
 - Add clap support for the cli
 - Change exit code if the `korrecte` finds any issue
 - Make the application deployable, evaluate the lints continuously and create an API to retrieve them
+- Evaluate rules directly from YAML files (instead of using Kubernetes API)
 - Add some reporting mechanisms. For example, statsd, datadog, prometheus, ... 
