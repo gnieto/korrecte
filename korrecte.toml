@@ -2,5 +2,10 @@
 labels = [
     "app",
 ]
-# namespaces = []
-# namespaces_blacklist = []
+
+[environment_passwords]
+suspicious_keys = [
+    "password",
+    "token",
+    "key",
+]
