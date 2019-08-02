@@ -4,7 +4,6 @@ use kube::client::APIClient;
 use kube::Result;
 use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
 use k8s_openapi::api::core::v1::{ServiceSpec, ServiceStatus};
-use std::collections::BTreeMap;
 use serde::de::DeserializeOwned;
 
 #[derive(Clone)]
@@ -85,7 +84,7 @@ impl ObjectRepository {
 
     fn all_objects<K: 'static + Send + Sync + Clone + DeserializeOwned + KubeObject>(reflector: &Reflector<K>) -> Vec<K> {
         reflector.read()
-            .unwrap_or(BTreeMap::new())
+            .unwrap_or_default()
             .iter()
             .map(|element| element.1.clone())
             .collect()

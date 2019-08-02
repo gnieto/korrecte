@@ -5,7 +5,7 @@ use colored::*;
 pub struct Cli;
 
 impl View for Cli {
-    fn render(&self, findings: &Vec<Finding>) {
+    fn render(&self, findings: &[Finding]) {
         for finding in findings {
             println!(
                 "{} on {} [{}]. Metadata: {:?}",

@@ -52,7 +52,7 @@ impl OverlappingProbes {
         let max_delay = max_probe_amount.saturating_mul(timeout);
         let max_duration = initial
             .checked_add(Duration::new(max_delay, 0))
-            .unwrap_or(initial.clone());
+            .unwrap_or_else(|| initial);
 
         TimeFrame {
             start: initial,

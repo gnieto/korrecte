@@ -25,7 +25,9 @@ impl Lint for NeverRestartWithLivenessProbe {
     }
 
     fn pod(&self, pod: &Object<PodSpec, PodStatus>, reporter: &dyn Reporter) {
-        let restart_policy: String = pod.spec.restart_policy.clone().unwrap_or("Always".to_string());
+        let restart_policy: String = pod.spec.restart_policy
+            .clone()
+            .unwrap_or_else(|| "Always".to_string());
         if restart_policy.to_ascii_lowercase() != "never" {
             return
         }
@@ -39,6 +41,6 @@ impl Lint for NeverRestartWithLivenessProbe {
         }
 
         let finding = Finding::new(self.spec().clone(), pod.metadata.clone());
-        reporter.report(finding);
+            reporter.report(finding);
     }
 }
