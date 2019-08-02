@@ -20,6 +20,7 @@ pub trait Lint {
 pub enum Group {
     Audit,
     Configuration,
+    Security,
 }
 
 #[derive(Clone)]
@@ -38,12 +39,14 @@ impl LintCollection {
         let overlapping = linters::lints::overlapping_probes::OverlappingProbes::new(reporter.clone());
         let never = linters::lints::never_restart_with_liveness_probe::NeverRestartWithLivenessProbe::new(reporter.clone());
         let service_labels = linters::lints::service_without_matching_labels::ServiceWithoutMatchingLabels::new(reporter.clone(), object_repository.clone());
+        let passwords = linters::lints::environment_passwords::EnvironmentPasswords::new(reporter, cfg.environment_var.clone());
 
         vec![
             Box::new(required),
             Box::new(overlapping),
             Box::new(never),
             Box::new(service_labels),
+            Box::new(passwords),
         ]
     }
 }
