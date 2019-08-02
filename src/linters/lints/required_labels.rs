@@ -15,21 +15,19 @@ use std::collections::HashMap;
 ///
 /// **References**
 /// https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#motivation
-pub(crate) struct RequiredLabels<R: Reporter> {
+pub(crate) struct RequiredLabels {
     config: Config,
-    reporter: R,
 }
 
-impl<R: Reporter> RequiredLabels<R> {
-    pub fn new(config: Config, reporter: R) -> Self {
+impl RequiredLabels {
+    pub fn new(config: Config) -> Self {
         RequiredLabels {
             config,
-            reporter,
         }
     }
 }
 
-impl<R: Reporter> Lint for RequiredLabels<R> {
+impl Lint for RequiredLabels {
     fn spec(&self) -> LintSpec {
         LintSpec {
             group: Group::Audit,
@@ -37,7 +35,7 @@ impl<R: Reporter> Lint for RequiredLabels<R> {
         }
     }
 
-    fn pod(&self, pod: &Object<PodSpec, PodStatus>) {
+    fn pod(&self, pod: &Object<PodSpec, PodStatus>, reporter: &dyn Reporter) {
         let current_labels: Vec<String> = pod.metadata
             .labels
             .keys()
@@ -56,7 +54,7 @@ impl<R: Reporter> Lint for RequiredLabels<R> {
             let finding = Finding::new(self.spec().clone(), pod.metadata.clone())
                 .with_metadata(metadata);
 
-            self.reporter.report(finding);
+            reporter.report(finding);
         }
     }
 }

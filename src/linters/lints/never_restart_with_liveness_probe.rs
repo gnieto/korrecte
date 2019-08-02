@@ -13,11 +13,10 @@ use crate::reporting::{Reporter, Finding};
 ///
 /// **References:**
 /// - https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes
-pub(crate) struct NeverRestartWithLivenessProbe<R: Reporter> {
-    reporter: R,
-}
+#[derive(Default)]
+pub(crate) struct NeverRestartWithLivenessProbe;
 
-impl<R: Reporter> Lint for NeverRestartWithLivenessProbe<R> {
+impl Lint for NeverRestartWithLivenessProbe {
     fn spec(&self) -> LintSpec {
         LintSpec {
             group: Group::Configuration,
@@ -25,7 +24,7 @@ impl<R: Reporter> Lint for NeverRestartWithLivenessProbe<R> {
         }
     }
 
-    fn pod(&self, pod: &Object<PodSpec, PodStatus>) {
+    fn pod(&self, pod: &Object<PodSpec, PodStatus>, reporter: &dyn Reporter) {
         let restart_policy: String = pod.spec.restart_policy.clone().unwrap_or("Always".to_string());
         if restart_policy.to_ascii_lowercase() != "never" {
             return
@@ -40,15 +39,6 @@ impl<R: Reporter> Lint for NeverRestartWithLivenessProbe<R> {
         }
 
         let finding = Finding::new(self.spec().clone(), pod.metadata.clone());
-        self.reporter.report(finding);
-    }
-}
-
-
-impl<R: Reporter> NeverRestartWithLivenessProbe<R> {
-    pub fn new(reporter: R) -> Self {
-        NeverRestartWithLivenessProbe {
-            reporter,
-        }
+        reporter.report(finding);
     }
 }

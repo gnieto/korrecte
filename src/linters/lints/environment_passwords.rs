@@ -16,12 +16,11 @@ use serde::Deserialize;
 /// **References:**
 /// - https://kubernetes.io/docs/concepts/configuration/secret/
 /// - https://kubernetes.io/docs/tasks/inject-data-application/distribute-credentials-secure/
-pub(crate) struct EnvironmentPasswords<R: Reporter> {
+pub(crate) struct EnvironmentPasswords {
     config: Config,
-    reporter: R,
 }
 
-impl<R: Reporter> Lint for EnvironmentPasswords<R> {
+impl Lint for EnvironmentPasswords {
     fn spec(&self) -> LintSpec {
         LintSpec {
             group: Group::Security,
@@ -29,7 +28,7 @@ impl<R: Reporter> Lint for EnvironmentPasswords<R> {
         }
     }
 
-    fn pod(&self, pod: &Object<PodSpec, PodStatus>) {
+    fn pod(&self, pod: &Object<PodSpec, PodStatus>, reporter: &dyn Reporter) {
         let env_vars_with_secrets: Vec<&EnvVar> = pod.spec.containers
             .iter()
             .map(|c: &Container| c.env.as_ref())
@@ -42,16 +41,15 @@ impl<R: Reporter> Lint for EnvironmentPasswords<R> {
         for environment_var in env_vars_with_secrets {
             let finding = Finding::new(self.spec().clone(), pod.metadata.clone())
                 .add_metadata("environment_var".to_string(), environment_var.name.clone());
-            self.reporter.report(finding);
+            reporter.report(finding);
         }
     }
 }
 
 
-impl<R: Reporter> EnvironmentPasswords<R> {
-    pub fn new(reporter: R, config: Config) -> Self {
+impl EnvironmentPasswords {
+    pub fn new(config: Config) -> Self {
         EnvironmentPasswords {
-            reporter,
             config,
         }
     }

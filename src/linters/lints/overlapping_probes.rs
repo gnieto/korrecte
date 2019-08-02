@@ -20,11 +20,10 @@ use std::time::Duration;
 /// - https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes
 /// - https://github.com/kubernetes/kubernetes/issues/27114
 /// - https://cloud.google.com/blog/products/gcp/kubernetes-best-practices-setting-up-health-checks-with-readiness-and-liveness-probes
-pub(crate) struct OverlappingProbes<R: Reporter> {
-    reporter: R,
-}
+#[derive(Default)]
+pub(crate) struct OverlappingProbes;
 
-impl<R: Reporter> Lint for OverlappingProbes<R> {
+impl Lint for OverlappingProbes {
     fn spec(&self) -> LintSpec {
         LintSpec {
             group: Group::Configuration,
@@ -32,21 +31,15 @@ impl<R: Reporter> Lint for OverlappingProbes<R> {
         }
     }
 
-    fn pod(&self, pod: &Object<PodSpec, PodStatus>) {
+    fn pod(&self, pod: &Object<PodSpec, PodStatus>, reporter: &dyn Reporter) {
         for c in pod.spec.containers.iter() {
-            self.check_container_probes(&c, &pod.metadata);
+            self.check_container_probes(reporter, &c, &pod.metadata);
         }
     }
 }
 
 
-impl<R: Reporter> OverlappingProbes<R> {
-    pub fn new(reporter: R) -> Self {
-        OverlappingProbes {
-            reporter,
-        }
-    }
-
+impl OverlappingProbes {
     fn calculate_time_frame(probe: &Probe) -> TimeFrame {
         let initial_delay = probe.initial_delay_seconds.unwrap_or(0) as u64;
         let initial = Duration::new(initial_delay, 0);
@@ -67,7 +60,7 @@ impl<R: Reporter> OverlappingProbes<R> {
         }
     }
 
-    fn check_container_probes(&self, c: &Container, object_meta: &ObjectMeta) {
+    fn check_container_probes(&self, reporter: &dyn Reporter, c: &Container, object_meta: &ObjectMeta) {
         let readiness_probe = c.readiness_probe.as_ref().map(Self::calculate_time_frame);
         let liveness_probes = c.liveness_probe.as_ref().map(Self::calculate_time_frame);
 
@@ -81,7 +74,7 @@ impl<R: Reporter> OverlappingProbes<R> {
                     .add_metadata("readiness_max_delay".to_string(), readiness_end)
                     .add_metadata("liveness_start".to_string(), liveness_start);
 
-                self.reporter.report(finding);
+                reporter.report(finding);
             }
         }
     }
