@@ -28,7 +28,11 @@ service_without_matching_labels on my-service [default]. Metadata: {}
 
 ## Customization
 
-There are some lints that can be parametrized through a TOML file. At the moment, you need to place the file `korrecte.toml` on the same folder where the application is run.
+There are some lints that can be parametrized through a TOML file. You can copy the default `korrecte.toml` file and run the program with the `--config` flag:
+
+```bash
+cargo run -- --config /path/to/file.toml
+```
 
 ## Roadmap ideas
 

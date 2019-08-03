@@ -1,0 +1,21 @@
+name: korrecte
+version: "0.1"
+author: Guillem Nieto <gnieto.talo@gmail.com>
+about: Collection of lints to detect common pitfalls or security issues on your Kubernetes cluster
+args:
+  - config:
+      short: c
+      long: config
+      value_name: FILE
+      help: Sets a custom config file
+      takes_value: true
+  - mode:
+      short: m
+      long: mode
+      possible_values: ["one_shot"]
+      default_value: "one_shot"
+  - source:
+      short: s
+      long: source
+      possible_values: ["api", "file"]
+      default_value: "api"

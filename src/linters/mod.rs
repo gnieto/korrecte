@@ -39,7 +39,7 @@ impl LintCollection {
         let overlapping = linters::lints::overlapping_probes::OverlappingProbes::default();
         let never = linters::lints::never_restart_with_liveness_probe::NeverRestartWithLivenessProbe::default();
         let service_labels = linters::lints::service_without_matching_labels::ServiceWithoutMatchingLabels::new(object_repository.clone());
-        let passwords = linters::lints::environment_passwords::EnvironmentPasswords::new(cfg.environment_var.clone());
+        let passwords = linters::lints::environment_passwords::EnvironmentPasswords::new(cfg.environment_passwords.clone());
 
         vec![
             Box::new(required),
