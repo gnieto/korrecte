@@ -1,11 +1,11 @@
 use crate::linters::LintList;
-use crate::kube::objects::ObjectRepository;
+use crate::kube::ObjectRepository;
 use crate::reporting::Reporter;
 
 pub struct OneShotEvaluator;
 
 impl OneShotEvaluator {
-    pub fn evaluate(reporter: &dyn Reporter, list: LintList, object_repository: ObjectRepository) {
+    pub fn evaluate<O: ObjectRepository>(reporter: &dyn Reporter, list: LintList, object_repository: O) {
         for pod in object_repository.pods().iter() {
             for lint in list.iter() {
                 lint.pod(pod, reporter);

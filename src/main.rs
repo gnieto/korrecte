@@ -14,7 +14,7 @@ use crate::view::cli::Cli;
 use crate::view::View;
 use crate::linters::evaluator::OneShotEvaluator;
 use ::kube::config as kube_config;
-use crate::kube::objects::ObjectRepository;
+use crate::kube::api::ApiObjectRepository;
 use clap::App;
 use clap::load_yaml;
 
@@ -29,7 +29,7 @@ fn main() {
     });
     let reporter = reporting::SingleThreadedReporter::default();
 
-    let object_repository = ObjectRepository::new(kube_config::load_kube_config().unwrap()).unwrap();
+    let object_repository = ApiObjectRepository::new(kube_config::load_kube_config().unwrap()).unwrap();
     let list = LintCollection::all(cfg, object_repository.clone());
     OneShotEvaluator::evaluate(&reporter, list, object_repository);
 

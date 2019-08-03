@@ -4,7 +4,7 @@ use k8s_openapi::api::core::v1::{ServiceSpec, ServiceStatus};
 use crate::config::Config;
 use crate::reporting::Reporter;
 use crate::linters;
-use crate::kube::objects::ObjectRepository;
+use crate::kube::ObjectRepository;
 
 pub(crate) mod lints;
 pub(crate) mod evaluator;
@@ -34,7 +34,7 @@ pub type LintList<'a> = Vec<Box<dyn Lint + 'a>>;
 pub struct LintCollection;
 
 impl LintCollection {
-    pub fn all<'a>(cfg: Config, object_repository: ObjectRepository) -> LintList<'a> {
+    pub fn all<'a, O: ObjectRepository + Clone + 'a>(cfg: Config, object_repository: O) -> LintList<'a> {
         let required = linters::lints::required_labels::RequiredLabels::new(cfg.required_labels.clone());
         let overlapping = linters::lints::overlapping_probes::OverlappingProbes::default();
         let never = linters::lints::never_restart_with_liveness_probe::NeverRestartWithLivenessProbe::default();
