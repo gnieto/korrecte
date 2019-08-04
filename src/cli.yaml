@@ -19,3 +19,9 @@ args:
       long: source
       possible_values: ["api", "file"]
       default_value: "api"
+  - path:
+      short: p
+      long: path
+      value_name: FILE
+      requires: source
+      help: Path to yaml manifests to validate. Requires that source is set to "file".

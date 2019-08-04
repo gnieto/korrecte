@@ -1,8 +1,10 @@
 use kube::api::{ObjectMeta, Object};
 use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
 use k8s_openapi::api::core::v1::{ServiceSpec, ServiceStatus};
+use serde::Deserialize;
 
 pub mod api;
+pub mod file;
 
 pub struct Identifier {
     name: String,
@@ -22,4 +24,11 @@ pub trait ObjectRepository {
 
     fn service(&self, id: &Identifier) -> Option<Object<ServiceSpec, ServiceStatus>>;
     fn services(&self) -> Vec<Object<ServiceSpec, ServiceStatus>>;
+}
+
+#[derive(Deserialize, Clone)]
+#[serde(tag = "kind")]
+pub enum KubeObjectType {
+    Pod(Object<PodSpec, PodStatus>),
+    Service(Object<ServiceSpec, ServiceStatus>),
 }

@@ -5,7 +5,7 @@ use crate::reporting::Reporter;
 pub struct OneShotEvaluator;
 
 impl OneShotEvaluator {
-    pub fn evaluate<O: ObjectRepository>(reporter: &dyn Reporter, list: LintList, object_repository: O) {
+    pub fn evaluate(reporter: &dyn Reporter, list: LintList, object_repository: &Box<dyn ObjectRepository>) {
         for pod in object_repository.pods().iter() {
             for lint in list.iter() {
                 lint.pod(pod, reporter);

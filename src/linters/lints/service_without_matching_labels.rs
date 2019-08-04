@@ -15,19 +15,19 @@ use crate::kube::ObjectRepository;
 /// **Known problems:** Sending data to that service may provoke failures
 ///
 /// **References**
-pub(crate) struct ServiceWithoutMatchingLabels<O: ObjectRepository> {
-    object_repository: O,
+pub(crate) struct ServiceWithoutMatchingLabels<'a> {
+    object_repository: &'a Box<dyn ObjectRepository>,
 }
 
-impl<O: ObjectRepository> ServiceWithoutMatchingLabels<O> {
-    pub fn new(object_repository: O) -> Self {
+impl<'a> ServiceWithoutMatchingLabels<'a> {
+    pub fn new(object_repository: &'a Box<dyn ObjectRepository>) -> Self {
         ServiceWithoutMatchingLabels {
             object_repository,
         }
     }
 }
 
-impl<O: ObjectRepository> Lint for ServiceWithoutMatchingLabels<O> {
+impl<'a> Lint for ServiceWithoutMatchingLabels<'a> {
     fn spec(&self) -> LintSpec {
         LintSpec {
             group: Group::Configuration,
