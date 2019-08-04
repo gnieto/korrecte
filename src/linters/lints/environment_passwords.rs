@@ -75,6 +75,14 @@ pub(crate) struct Config {
     suspicious_keys: Vec<String>,
 }
 
+impl Config {
+    pub fn new(suspicious_keys: Vec<String>) -> Self {
+        Config {
+            suspicious_keys,
+        }
+    }
+}
+
 impl Default for Config {
     fn default() -> Self {
         Config {
@@ -89,5 +97,139 @@ fn default_environment_vars() -> Vec<String> {
         "token".to_string(),
         "key".to_string(),
     ]
+}
 
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+    use crate::linters::lints::environment_passwords::{EnvironmentPasswords, Config};
+    use crate::linters::Lint;
+    use kube::api::Object;
+    use crate::reporting::{SingleThreadedReporter, Reporter};
+    use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
+    use serde_json::Value;
+
+    #[test]
+    fn it_finds_passwords_on_pods() {
+        let envvars = json!([
+            {
+                "name": "ADMIN_PASSWORD",
+                "value": "changeme"
+            },
+            {
+                "name": "ADMIN_NON_SUSPICIOUS_WORD",
+                "value": "no-password"
+            }
+        ]);
+        let pod = get_pod_with_environment_vars(envvars);
+        let reporter = SingleThreadedReporter::default();
+
+        let linter = EnvironmentPasswords::new(Config::default());
+
+        linter.pod(&pod, &reporter);
+        let lints = reporter.findings();
+        assert_eq!(1, lints.len());
+        let finding= &lints[0];
+        assert_eq!(finding.spec(), &linter.spec());
+        assert_eq!("ADMIN_PASSWORD", finding.lint_metadata().get("environment_var".into()).unwrap());
+    }
+
+    #[test]
+    fn it_does_not_detect_if_source_is_not_literal() {
+        let envvars = json!([
+            {
+                "name": "ADMIN_PASSWORD",
+                "valueFrom": {
+                    "secretKeyFrom": {
+                        "name": "some-secret",
+                        "value": "secret-key",
+                    }
+                }
+            }
+        ]);
+        let pod = get_pod_with_environment_vars(envvars);
+        let reporter = SingleThreadedReporter::default();
+
+        let linter = EnvironmentPasswords::new(Config::default());
+
+        linter.pod(&pod, &reporter);
+        let lints = reporter.findings();
+        assert_eq!(0, lints.len());
+    }
+
+    #[test]
+    fn it_detects_suspicious_keys_on_mixed_cases() {
+        let envvars = json!([
+            {
+                "name": "ADMIN_PAssWORD",
+                "value": "changeme"
+            }
+        ]);
+        let pod = get_pod_with_environment_vars(envvars);
+        let reporter = SingleThreadedReporter::default();
+
+        let linter = EnvironmentPasswords::new(Config::default());
+
+        linter.pod(&pod, &reporter);
+        let lints = reporter.findings();
+        assert_eq!(1, lints.len());
+        let finding= &lints[0];
+        assert_eq!(finding.spec(), &linter.spec());
+        assert_eq!("ADMIN_PAssWORD", finding.lint_metadata().get("environment_var".into()).unwrap());
+    }
+
+    #[test]
+    fn it_detects_suspicious_with_non_default_config() {
+        let envvars = json!([
+            {
+                "name": "ADMIN_PASSWORD",
+                "value": "changeme"
+            },
+            {
+                "name": "SUSPICIOUS_KEY",
+                "value": "changeme"
+            },
+            {
+                "name": "ENV_ANOTHER_KEY",
+                "value": "randomvalue",
+            }
+        ]);
+        let pod = get_pod_with_environment_vars(envvars);
+        let reporter = SingleThreadedReporter::default();
+
+        let config = Config::new(vec!["SUSPICIOUS".to_string(), "ANOTHER_KEY".to_string()]);
+        let linter = EnvironmentPasswords::new(config);
+
+        linter.pod(&pod, &reporter);
+        let lints = reporter.findings();
+        assert_eq!(2, lints.len());
+        let finding= &lints[0];
+        assert_eq!(finding.spec(), &linter.spec());
+        assert_eq!("SUSPICIOUS_KEY", finding.lint_metadata().get("environment_var".into()).unwrap());
+
+        let finding= &lints[1];
+        assert_eq!(finding.spec(), &linter.spec());
+        assert_eq!("ENV_ANOTHER_KEY", finding.lint_metadata().get("environment_var".into()).unwrap());
+    }
+
+    fn get_pod_with_environment_vars(json_value: Value) -> Object<PodSpec, PodStatus> {
+        let pod_spec = json!({
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata":  {
+                "name": "pod-name",
+                "namespaces": "test-ns",
+            },
+            "spec": {
+                "containers": [{
+                    "name": "app",
+                    "image": "some-image",
+                    "env": json_value,
+                }]
+            }
+        });
+        let pod: Object<PodSpec, PodStatus> = serde_json::from_value(pod_spec).unwrap();
+
+        pod
+    }
 }

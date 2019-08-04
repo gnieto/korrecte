@@ -19,10 +19,23 @@ impl Identifier {
 }
 
 pub trait ObjectRepository {
-    fn pod(&self, id: &Identifier) -> Option<Object<PodSpec, PodStatus>>;
+    fn pod(&self, id: &Identifier) -> Option<Object<PodSpec, PodStatus>> {
+        self.pods()
+            .iter()
+            .filter(|p| id.matches_with(&p.metadata))
+            .next()
+            .cloned()
+    }
+
     fn pods(&self) -> Vec<Object<PodSpec, PodStatus>>;
 
-    fn service(&self, id: &Identifier) -> Option<Object<ServiceSpec, ServiceStatus>>;
+    fn service(&self, id: &Identifier) -> Option<Object<ServiceSpec, ServiceStatus>> {
+        self.services()
+            .iter()
+            .filter(|s| id.matches_with(&s.metadata))
+            .next()
+            .cloned()
+    }
     fn services(&self) -> Vec<Object<ServiceSpec, ServiceStatus>>;
 }
 

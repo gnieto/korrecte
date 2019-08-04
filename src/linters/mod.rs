@@ -16,14 +16,14 @@ pub trait Lint {
     fn service(&self, _svc: &Object<ServiceSpec, ServiceStatus>, _reporter: &dyn Reporter) {}
 }
 
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub enum Group {
     Audit,
     Configuration,
     Security,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub struct LintSpec {
     pub group: Group,
     pub name: String,
