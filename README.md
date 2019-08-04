@@ -34,11 +34,19 @@ There are some lints that can be parametrized through a TOML file. You can copy 
 cargo run -- --config /path/to/file.toml
 ```
 
+## File linting
+
+Instead of requiring a running Kubernetes cluster, `korrecte` is able to lint YAML manifests instead. Note that those lints that requires to read some state on the cluster, may not work as expected when running in this mode. For example, the `service_without_matching_labels` lints, searches all the possible matching pod, but it probably needs access to pods that are not defined on the manifest.
+
+To lint a specific file, you can run:
+
+```bash
+cargo run -- --source file --path <path to file>
+``` 
+
 ## Roadmap ideas
 
 - Allow filtering by namespace or by name regex
-- Add clap support for the cli
 - Change exit code if the `korrecte` finds any issue
 - Make the application deployable, evaluate the lints continuously and create an API to retrieve them
-- Evaluate rules directly from YAML files (instead of using Kubernetes API)
-- Add some reporting mechanisms. For example, statsd, datadog, prometheus, ... 
+- Add more reporting hooks. For example, statsd, datadog, prometheus, ... 
