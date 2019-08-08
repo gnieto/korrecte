@@ -5,6 +5,7 @@ use k8s_openapi::api::core::v1::{ServiceSpec, ServiceStatus};
 use kube::api::Object;
 use crate::kube::file::KubeObjectLoader;
 use crate::error::KorrecteError;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct FileObjectRepository {
@@ -12,11 +13,7 @@ pub struct FileObjectRepository {
 }
 
 impl ObjectRepository for FileObjectRepository {
-    fn pod(&self, _id: &Identifier) -> Option<Object<PodSpec, PodStatus>> {
-        unimplemented!()
-    }
-
-    fn pods(&self) -> Vec<Object<PodSpec, PodStatus>> {
+    fn pods(&self) -> Vec<Arc<Object<PodSpec, PodStatus>>> {
         self.objects
             .iter()
             .filter_map(|current_object| {
@@ -27,11 +24,8 @@ impl ObjectRepository for FileObjectRepository {
                     _ => None,
                 }
             })
+            .map(|e| Arc::new(e))
             .collect()
-    }
-
-    fn service(&self, _id: &Identifier) -> Option<Object<ServiceSpec, ServiceStatus>> {
-        unimplemented!()
     }
 
     fn services(&self) -> Vec<Object<ServiceSpec, ServiceStatus>> {

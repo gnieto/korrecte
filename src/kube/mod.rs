@@ -2,6 +2,7 @@ use kube::api::{ObjectMeta, Object};
 use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
 use k8s_openapi::api::core::v1::{ServiceSpec, ServiceStatus};
 use serde::Deserialize;
+use std::sync::Arc;
 
 pub mod api;
 pub mod file;
@@ -19,7 +20,7 @@ impl Identifier {
 }
 
 pub trait ObjectRepository {
-    fn pod(&self, id: &Identifier) -> Option<Object<PodSpec, PodStatus>> {
+    fn pod(&self, id: &Identifier) -> Option<Arc<Object<PodSpec, PodStatus>>> {
         self.pods()
             .iter()
             .filter(|p| id.matches_with(&p.metadata))
@@ -27,7 +28,7 @@ pub trait ObjectRepository {
             .cloned()
     }
 
-    fn pods(&self) -> Vec<Object<PodSpec, PodStatus>>;
+    fn pods(&self) -> Vec<Arc<Object<PodSpec, PodStatus>>>;
 
     fn service(&self, id: &Identifier) -> Option<Object<ServiceSpec, ServiceStatus>> {
         self.services()

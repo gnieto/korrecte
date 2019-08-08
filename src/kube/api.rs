@@ -1,4 +1,4 @@
-use kube::api::{Object, Reflector, KubeObject, Api};
+use kube::api::{Object, Reflector, KubeObject, Api, RawApi, ObjectMeta};
 use kube::config::Configuration;
 use kube::client::APIClient;
 use kube::Result;
@@ -6,17 +6,22 @@ use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
 use k8s_openapi::api::core::v1::{ServiceSpec, ServiceStatus};
 use serde::de::DeserializeOwned;
 use super::{ObjectRepository, Identifier};
+use std::sync::Arc;
+use std::marker::PhantomData;
+use serde::{Deserialize, Deserializer};
+use std::result::Result as CoreResult;
 
 #[derive(Clone)]
 pub struct ApiObjectRepository {
-    pods_reflector: Reflector<Object<PodSpec, PodStatus>>,
+    pods_reflector: Reflector<ArcKubeObject<Object<PodSpec, PodStatus>>>,
     service_reflector: Reflector<Object<ServiceSpec, ServiceStatus>>,
 }
 
 impl ApiObjectRepository {
     pub fn new(kube_config: Configuration) -> Result<Self> {
         let client = APIClient::new(kube_config);
-        let pod_reflector = ApiObjectRepository::initialize_reflector(Api::v1Pod(client.clone()))?;
+        let pod_api = create_arc_v1_pod(client.clone());
+        let pod_reflector = ApiObjectRepository::initialize_reflector(pod_api)?;
         let service_reflector = ApiObjectRepository::initialize_reflector(Api::v1Service(client))?;
 
         Ok(ApiObjectRepository {
@@ -46,8 +51,8 @@ impl ApiObjectRepository {
 
         objs.iter()
             .find_map(|o| {
-                if id.matches_with(o.1.meta()) {
-                    Some(o.1.clone())
+                if id.matches_with(o.meta()) {
+                    Some(o.clone())
                 } else {
                     None
                 }
@@ -58,18 +63,19 @@ impl ApiObjectRepository {
         reflector.read()
             .unwrap_or_default()
             .iter()
-            .map(|element| element.1.clone())
+            .map(|element| element.clone())
             .collect()
     }
+
 }
 
 impl ObjectRepository for ApiObjectRepository {
-    fn pod(&self, id: &Identifier) -> Option<Object<PodSpec, PodStatus>> {
-        Self::find_object(id, &self.pods_reflector)
-    }
-
-    fn pods(&self) -> Vec<Object<PodSpec, PodStatus>> {
-        Self::all_objects(&self.pods_reflector)
+    fn pods(&self) -> Vec<Arc<Object<PodSpec, PodStatus>>> {
+        self.pods_reflector.read()
+            .unwrap_or_default()
+            .iter()
+            .map(|entry| entry.get())
+            .collect()
     }
 
     fn service(&self, id: &Identifier) -> Option<Object<ServiceSpec, ServiceStatus>> {
@@ -78,5 +84,41 @@ impl ObjectRepository for ApiObjectRepository {
 
     fn services(&self) -> Vec<Object<ServiceSpec, ServiceStatus>> {
         Self::all_objects(&self.service_reflector)
+    }
+}
+
+fn create_arc_v1_pod(client: APIClient) -> Api<ArcKubeObject<Object<PodSpec, PodStatus>>> {
+    Api::new(RawApi::v1Pod(), client)
+}
+
+#[derive(Clone)]
+struct ArcKubeObject<K: Clone> {
+    inner: Arc<K>,
+}
+
+impl<K: KubeObject + Clone + DeserializeOwned> ArcKubeObject<K> {
+    pub fn new(inner: K) -> Self {
+        ArcKubeObject {
+            inner: Arc::new(inner),
+        }
+    }
+
+    pub fn get(&self) -> Arc<K> {
+        self.inner.clone()
+    }
+}
+
+impl<K: KubeObject + Clone + DeserializeOwned> KubeObject for ArcKubeObject<K> {
+    fn meta(&self) -> &ObjectMeta {
+        self.inner.meta()
+    }
+}
+
+impl<'de, T: DeserializeOwned + Clone + KubeObject> Deserialize<'de> for ArcKubeObject<T> {
+    fn deserialize<D>(deserializer: D) -> CoreResult<Self, D::Error>
+        where
+            D: Deserializer<'de>,
+    {
+        Deserialize::deserialize(deserializer).map(ArcKubeObject::new)
     }
 }
