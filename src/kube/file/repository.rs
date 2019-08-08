@@ -12,10 +12,6 @@ pub struct FileObjectRepository {
 }
 
 impl ObjectRepository for FileObjectRepository {
-    fn pod(&self, _id: &Identifier) -> Option<Object<PodSpec, PodStatus>> {
-        unimplemented!()
-    }
-
     fn pods(&self) -> Vec<Object<PodSpec, PodStatus>> {
         self.objects
             .iter()
@@ -28,10 +24,6 @@ impl ObjectRepository for FileObjectRepository {
                 }
             })
             .collect()
-    }
-
-    fn service(&self, _id: &Identifier) -> Option<Object<ServiceSpec, ServiceStatus>> {
-        unimplemented!()
     }
 
     fn services(&self) -> Vec<Object<ServiceSpec, ServiceStatus>> {
@@ -51,7 +43,23 @@ impl ObjectRepository for FileObjectRepository {
 
 impl FileObjectRepository {
     pub fn new(path: &Path) -> Result<FileObjectRepository, KorrecteError> {
-        let objects = KubeObjectLoader::read_file(&path)?;
+        let objects = if path.is_dir() {
+            let objects: Vec<Result<KubeObjectType, KorrecteError>> = path.read_dir()?
+                .into_iter()
+                .map(|e| e.ok())
+                .filter(|entry| entry.is_some())
+                .map(|maybe_entry| maybe_entry.unwrap())
+                .map(|entry| KubeObjectLoader::read_file(&entry.path()))
+                .map(|objects| objects.unwrap_or_default())
+                .flatten()
+                .collect();
+
+            objects
+        } else if path.is_file() {
+            KubeObjectLoader::read_file(&path)?
+        } else {
+            Vec::new()
+        };
 
         let properly_parsed_objects: Vec<KubeObjectType> = objects
             .iter()
@@ -62,4 +70,6 @@ impl FileObjectRepository {
             objects: properly_parsed_objects,
         })
     }
+
+
 }

@@ -44,6 +44,8 @@ To lint a specific file, you can run:
 cargo run -- --source file --path <path to file>
 ``` 
 
+If the path is a directory, it will iterate over all the files and will apply the lints on each of them. 
+
 ## Roadmap ideas
 
 - Allow filtering by namespace or by name regex
