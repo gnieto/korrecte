@@ -1,0 +1,32 @@
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: missconfigured-pdb
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: pdb
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pdb-deployment
+  labels:
+    app: pdb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pdb
+  template:
+    metadata:
+      labels:
+        app: pdb
+    spec:
+      containers:
+        - name: pdb
+          image: busybox
+          command:
+            - "sleep"
+            - "10000"
