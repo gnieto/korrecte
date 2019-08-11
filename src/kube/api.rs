@@ -46,8 +46,8 @@ impl ApiObjectRepository {
 
         objs.iter()
             .find_map(|o| {
-                if id.matches_with(o.1.meta()) {
-                    Some(o.1.clone())
+                if id.matches_with(o.meta()) {
+                    Some(o.clone())
                 } else {
                     None
                 }
@@ -58,7 +58,7 @@ impl ApiObjectRepository {
         reflector.read()
             .unwrap_or_default()
             .iter()
-            .map(|element| element.1.clone())
+            .map(|element| element.clone())
             .collect()
     }
 }
