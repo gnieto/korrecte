@@ -17,5 +17,11 @@ impl OneShotEvaluator {
                 lint.service(svc, reporter);
             }
         }
+
+        for pdb in object_repository.pod_disruption_budgets().iter() {
+            for lint in list.iter() {
+                lint.pod_disruption_budget(pdb, reporter);
+            }
+        }
     }
 }

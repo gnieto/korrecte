@@ -4,6 +4,9 @@ use kube::client::APIClient;
 use kube::Result;
 use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
 use k8s_openapi::api::core::v1::{ServiceSpec, ServiceStatus};
+use k8s_openapi::api::apps::v1::{DeploymentSpec, DeploymentStatus};
+use k8s_openapi::api::autoscaling::v1::{HorizontalPodAutoscalerSpec, HorizontalPodAutoscalerStatus};
+use k8s_openapi::api::policy::v1beta1::{PodDisruptionBudgetSpec, PodDisruptionBudgetStatus};
 use serde::de::DeserializeOwned;
 use super::{ObjectRepository, Identifier};
 
@@ -11,17 +14,23 @@ use super::{ObjectRepository, Identifier};
 pub struct ApiObjectRepository {
     pods_reflector: Reflector<Object<PodSpec, PodStatus>>,
     service_reflector: Reflector<Object<ServiceSpec, ServiceStatus>>,
+    pdb_reflector: Reflector<Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>>,
+    deploy_reflector: Reflector<Object<DeploymentSpec, DeploymentStatus>>,
 }
 
 impl ApiObjectRepository {
     pub fn new(kube_config: Configuration) -> Result<Self> {
         let client = APIClient::new(kube_config);
-        let pod_reflector = ApiObjectRepository::initialize_reflector(Api::v1Pod(client.clone()))?;
-        let service_reflector = ApiObjectRepository::initialize_reflector(Api::v1Service(client))?;
+        let pods_reflector = ApiObjectRepository::initialize_reflector(Api::v1Pod(client.clone()))?;
+        let service_reflector = ApiObjectRepository::initialize_reflector(Api::v1Service(client.clone()))?;
+        let pdb_reflector = ApiObjectRepository::initialize_reflector(Api::v1beta1PodDisruptionBudget(client.clone()))?;
+        let deploy_reflector = ApiObjectRepository::initialize_reflector(Api::v1Deployment(client.clone()))?;
 
         Ok(ApiObjectRepository {
-            pods_reflector: pod_reflector,
+            pods_reflector,
             service_reflector,
+            pdb_reflector,
+            deploy_reflector,
         })
     }
 
@@ -78,5 +87,18 @@ impl ObjectRepository for ApiObjectRepository {
 
     fn services(&self) -> Vec<Object<ServiceSpec, ServiceStatus>> {
         Self::all_objects(&self.service_reflector)
+    }
+
+    fn pod_disruption_budgets(&self) -> Vec<Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>> {
+        Self::all_objects(&self.pdb_reflector)
+    }
+
+    fn deployments(&self) -> Vec<Object<DeploymentSpec, DeploymentStatus>> {
+        Self::all_objects(&self.deploy_reflector)
+    }
+
+    fn horizontal_pod_autoscaler(&self) -> Vec<Object<HorizontalPodAutoscalerSpec, HorizontalPodAutoscalerStatus>> {
+        // Unimplemented
+        Vec::new()
     }
 }

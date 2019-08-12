@@ -1,7 +1,10 @@
 use std::path::Path;
-use crate::kube::{ObjectRepository, Identifier, KubeObjectType};
+use crate::kube::{ObjectRepository, KubeObjectType};
 use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
 use k8s_openapi::api::core::v1::{ServiceSpec, ServiceStatus};
+use k8s_openapi::api::apps::v1::{DeploymentSpec, DeploymentStatus};
+use k8s_openapi::api::autoscaling::v1::{HorizontalPodAutoscalerSpec, HorizontalPodAutoscalerStatus};
+use k8s_openapi::api::policy::v1beta1::{PodDisruptionBudgetSpec, PodDisruptionBudgetStatus};
 use kube::api::Object;
 use crate::kube::file::KubeObjectLoader;
 use crate::error::KorrecteError;
@@ -33,6 +36,48 @@ impl ObjectRepository for FileObjectRepository {
                 match current_object {
                     KubeObjectType::Service(svc) => {
                         Some(svc.clone())
+                    },
+                    _ => None,
+                }
+            })
+            .collect()
+    }
+
+    fn pod_disruption_budgets(&self) -> Vec<Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>> {
+        self.objects
+            .iter()
+            .filter_map(|current_object| {
+                match current_object {
+                    KubeObjectType::PodDisruptionBudget(pdb) => {
+                        Some(pdb.clone())
+                    },
+                    _ => None,
+                }
+            })
+            .collect()
+    }
+
+    fn deployments(&self) -> Vec<Object<DeploymentSpec, DeploymentStatus>> {
+        self.objects
+            .iter()
+            .filter_map(|current_object| {
+                match current_object {
+                    KubeObjectType::Deployment(deploy) => {
+                        Some(deploy.clone())
+                    },
+                    _ => None,
+                }
+            })
+            .collect()
+    }
+
+    fn horizontal_pod_autoscaler(&self) -> Vec<Object<HorizontalPodAutoscalerSpec, HorizontalPodAutoscalerStatus>> {
+        self.objects
+            .iter()
+            .filter_map(|current_object| {
+                match current_object {
+                    KubeObjectType::HorizontalPodAutoscaler(hpa) => {
+                        Some(hpa.clone())
                     },
                     _ => None,
                 }

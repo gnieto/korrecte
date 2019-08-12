@@ -1,0 +1,32 @@
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: pdb-ok
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: pdb-ok
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pdb-deployment-ok
+  labels:
+    app: pdb-ok
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pdb-ok
+  template:
+    metadata:
+      labels:
+        app: pdb-ok
+    spec:
+      containers:
+        - name: pdb
+          image: busybox
+          command:
+            - "sleep"
+            - "10000"

@@ -27,8 +27,8 @@ impl Finding {
         }
     }
 
-    pub fn add_metadata(mut self, key: String, value: String) -> Self {
-        self.lint_metadata.insert(key, value);
+    pub fn add_metadata<K: ToString, V: ToString>(mut self, key: K, value: V) -> Self {
+        self.lint_metadata.insert(key.to_string(), value.to_string());
         self
     }
 

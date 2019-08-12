@@ -2,7 +2,7 @@
 pub enum KorrecteError {
     Io(std::io::Error),
     Serde(toml::de::Error),
-    KubeConfig,
+    KubeConfig(::kube::Error),
     Generic(String),
     FailedToLoadYamlFile,
     UnrecognizedObject,
@@ -21,7 +21,7 @@ impl From<toml::de::Error> for KorrecteError {
 }
 
 impl From<::kube::Error> for KorrecteError {
-    fn from(_: ::kube::Error) -> Self {
-        KorrecteError::KubeConfig
+    fn from(e: ::kube::Error) -> Self {
+        KorrecteError::KubeConfig(e)
     }
 }

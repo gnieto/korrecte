@@ -4,6 +4,8 @@ mod reporting;
 mod view;
 mod kube;
 mod error;
+#[cfg(test)]
+mod tests;
 
 use crate::linters::LintCollection;
 use toml;
@@ -23,7 +25,7 @@ use crate::kube::file::FileObjectRepository;
 use std::path::Path;
 use crate::error::KorrecteError;
 
-fn main() {
+fn main() -> Result<(), KorrecteError>{
     let yaml = load_yaml!("cli.yaml");
     let matches = App::from_yaml(yaml).get_matches();
 
@@ -32,19 +34,21 @@ fn main() {
         println!("Could not load config file");
         Config::default()
     });
-    let reporter = reporting::SingleThreadedReporter::default();
 
-    let object_repository = build_object_repository(&matches).unwrap();
+    let reporter = reporting::SingleThreadedReporter::default();
+    let object_repository = build_object_repository(&matches)?;
+
     let list = LintCollection::all(cfg, &object_repository);
     OneShotEvaluator::evaluate(&reporter, list, &object_repository);
 
     let cli = Cli {};
     cli.render(&reporter.findings());
+    Ok(())
 }
 
 fn build_object_repository(matches: &ArgMatches) -> Result<Box<dyn ObjectRepository>, KorrecteError> {
     match matches.value_of("source") {
-        Some("api") => {
+        Some("api") | None => {
             let config = kube_config::load_kube_config().map_err( |_| KorrecteError::Generic("Could not load kube config".into()))?;
             Ok(Box::new(ApiObjectRepository::new(config)?))
         },

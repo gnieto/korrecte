@@ -76,6 +76,7 @@ pub(crate) struct Config {
 }
 
 impl Config {
+    #[allow(unused)]
     pub fn new(suspicious_keys: Vec<String>) -> Self {
         Config {
             suspicious_keys,
