@@ -9,7 +9,6 @@ fn main() {
         "k8s_openapi::api::core::v1::NodeSpec",
         "k8s_openapi::api::core::v1::PodSpec",
         "k8s_openapi::api::core::v1::ReplicationControllerSpec",
-        "k8s_openapi::api::core::v1::ReplicationControllerSpec",
         "k8s_openapi::api::core::v1::ServiceSpec",
 
         "k8s_openapi::api::apps::v1::DeamonSetSpec",
@@ -39,7 +38,7 @@ fn build_imports(specs: &[&str]) -> String {
         .map(|namespace|  {
             let split: Vec<&str> = namespace.split("::").collect();
             let count = split.len();
-            let ns = split[0..count-1].join("::").to_string();
+            let ns = split[0..count-2].join("::").to_string();
 
             format!("use {};", ns)
         })
@@ -61,8 +60,9 @@ fn build_lint_trait(specs: &[&str]) -> String {
             .trim_end_matches("Spec")
             .to_snake_case();
         let version = split.get(1).unwrap();
+        let ty = split.get(2).unwrap();
         let method_name = format!("{}_{}", version, clean_name);
-        let struct_path = format!("{}::{}", version, object);
+        let struct_path = format!("{}::{}::{}", ty, version, object);
 
         spec_str.push_str(&format!("\tfn {}(&self, _{}: &{}) -> Vec<korrecte::report::Finding> {{}}\n", method_name, clean_name, struct_path));
     }
