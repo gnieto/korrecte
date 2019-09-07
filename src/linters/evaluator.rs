@@ -6,7 +6,7 @@ pub struct OneShotEvaluator;
 
 impl OneShotEvaluator {
     pub fn evaluate(reporter: &dyn Reporter, list: LintList, object_repository: &Box<dyn ObjectRepository>) {
-        for pod in object_repository.pods().iter() {
+        /*for pod in object_repository.pods().iter() {
             for lint in list.iter() {
                 lint.pod(pod, reporter);
             }
@@ -22,6 +22,6 @@ impl OneShotEvaluator {
             for lint in list.iter() {
                 lint.pod_disruption_budget(pdb, reporter);
             }
-        }
+        }*/
     }
 }

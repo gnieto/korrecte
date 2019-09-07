@@ -1,5 +1,5 @@
 use crate::linters::LintSpec;
-use kube::api::ObjectMeta;
+use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use std::collections::HashMap;
 use std::cell::RefCell;
 use std::rc::Rc;
