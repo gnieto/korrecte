@@ -11,7 +11,7 @@ fn main() {
         "k8s_openapi::api::core::v1::ReplicationControllerSpec",
         "k8s_openapi::api::core::v1::ServiceSpec",
 
-        "k8s_openapi::api::apps::v1::DeamonSetSpec",
+        "k8s_openapi::api::apps::v1::DaemonSetSpec",
         "k8s_openapi::api::apps::v1::DeploymentSpec",
         "k8s_openapi::api::apps::v1::ReplicaSetSpec",
         "k8s_openapi::api::apps::v1::StatefulSetSpec",
@@ -44,7 +44,10 @@ fn build_imports(specs: &[&str]) -> String {
         })
         .collect();
 
-    distinct.iter().cloned().collect::<Vec<String>>().join("\n")
+    let mut namespaces = distinct.iter().cloned().collect::<Vec<String>>();
+    namespaces.push("use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;".to_string());
+
+    namespaces.join("\n")
 }
 
 fn build_lint_trait(specs: &[&str]) -> String {
@@ -64,7 +67,7 @@ fn build_lint_trait(specs: &[&str]) -> String {
         let method_name = format!("{}_{}", version, clean_name);
         let struct_path = format!("{}::{}::{}", ty, version, object);
 
-        spec_str.push_str(&format!("\tfn {}(&self, _{}: &{}) -> Vec<korrecte::report::Finding> {{}}\n", method_name, clean_name, struct_path));
+        spec_str.push_str(&format!("\tfn {}(&self, _{}: &{}, metadata: &ObjectMeta) -> Option<Vec<crate::reporting::Finding>> {{ None }}\n", method_name, clean_name, struct_path));
     }
 
 
