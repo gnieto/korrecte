@@ -88,7 +88,7 @@ use kube::client::APIClient;
 use kube::Result;
 {}
 use serde::de::DeserializeOwned;
-use super::{{ObjectRepository, Identifier}};
+use super::Identifier;
 use crate::linters::KubeObjectType;
 use crate::kube::NewObjectRepository;
 
@@ -144,7 +144,7 @@ impl NewObjectRepository for FrozenObjectRepository {{
         &self.objects
     }}
 
-    fn find(&self, id: &Identifier) -> Option<&KubeObjectType> {{
+    fn find(&self, _id: &Identifier) -> Option<&KubeObjectType> {{
         unimplemented!()
     }}
 }}

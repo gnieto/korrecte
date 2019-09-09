@@ -111,11 +111,8 @@ mod tests {
     use crate::linters::lints::environment_passwords::{EnvironmentPasswords, Config};
     use crate::linters::Lint;
     use kube::api::{Object};
-    use crate::reporting::{SingleThreadedReporter, Reporter};
     use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
     use serde_json::Value;
-    use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
-    use crate::linters::WithSpec;
 
     #[test]
     fn it_finds_passwords_on_pods() {
@@ -130,11 +127,9 @@ mod tests {
             }
         ]);
         let pod = get_pod_with_environment_vars(envvars);
-        let reporter = SingleThreadedReporter::default();
-
         let linter = EnvironmentPasswords::new(Config::default());
 
-        let findings = linter.v1_pod(&pod.spec, &ObjectMeta::default()).unwrap();
+        let findings = linter.v1_pod(&pod);
         assert_eq!(1, findings.len());
         let finding= &findings[0];
         assert_eq!(finding.spec(), &linter.spec());
@@ -155,11 +150,10 @@ mod tests {
             }
         ]);
         let pod = get_pod_with_environment_vars(envvars);
-        let reporter = SingleThreadedReporter::default();
 
         let linter = EnvironmentPasswords::new(Config::default());
 
-        let lints = linter.v1_pod(&pod.spec, &ObjectMeta::default()).unwrap();
+        let lints = linter.v1_pod(&pod);
         assert_eq!(0, lints.len());
     }
 
@@ -172,11 +166,10 @@ mod tests {
             }
         ]);
         let pod = get_pod_with_environment_vars(envvars);
-        let reporter = SingleThreadedReporter::default();
 
         let linter = EnvironmentPasswords::new(Config::default());
 
-        let lints = linter.v1_pod(&pod.spec, &ObjectMeta::default()).unwrap();
+        let lints = linter.v1_pod(&pod);
         assert_eq!(1, lints.len());
         let finding= &lints[0];
         assert_eq!(finding.spec(), &linter.spec());
@@ -200,12 +193,11 @@ mod tests {
             }
         ]);
         let pod = get_pod_with_environment_vars(envvars);
-        let reporter = SingleThreadedReporter::default();
 
         let config = Config::new(vec!["SUSPICIOUS".to_string(), "ANOTHER_KEY".to_string()]);
         let linter = EnvironmentPasswords::new(config);
 
-        let lints = linter.v1_pod(&pod.spec, &ObjectMeta::default()).unwrap();
+        let lints = linter.v1_pod(&pod);
 
         assert_eq!(2, lints.len());
         let finding= &lints[0];
