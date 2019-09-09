@@ -2,7 +2,7 @@ use crate::linters::{Lint, LintSpec, Group};
 
 use kube::api::{Object, ObjectMeta};
 use k8s_openapi::api::core::v1::{PodSpec, PodStatus, Probe, Container};
-use crate::reporting::{Reporter, Finding};
+use crate::reporting::Finding;
 use std::time::Duration;
 
 /// **What it does:** Finds pods which liveness probe *may* execute before all readiness probes has
@@ -31,10 +31,14 @@ impl Lint for OverlappingProbes {
         }
     }
 
-    fn pod(&self, pod: &Object<PodSpec, PodStatus>, reporter: &dyn Reporter) {
+    fn v1_pod(&self, pod: &Object<PodSpec, PodStatus>) -> Vec<Finding> {
+        let mut findings = Vec::new();
+
         for c in pod.spec.containers.iter() {
-            self.check_container_probes(reporter, &c, &pod.metadata);
+            self.check_container_probes(&mut findings, &c, &pod.metadata);
         }
+
+        findings
     }
 }
 
@@ -60,7 +64,7 @@ impl OverlappingProbes {
         }
     }
 
-    fn check_container_probes(&self, reporter: &dyn Reporter, c: &Container, object_meta: &ObjectMeta) {
+    fn check_container_probes(&self, findings: &mut Vec<Finding>, c: &Container, object_meta: &ObjectMeta) {
         let readiness_probe = c.readiness_probe.as_ref().map(Self::calculate_time_frame);
         let liveness_probes = c.liveness_probe.as_ref().map(Self::calculate_time_frame);
 
@@ -74,7 +78,7 @@ impl OverlappingProbes {
                     .add_metadata("readiness_max_delay".to_string(), readiness_end)
                     .add_metadata("liveness_start".to_string(), liveness_start);
 
-                reporter.report(finding);
+                findings.push(finding);
             }
         }
     }

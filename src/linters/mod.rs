@@ -27,7 +27,7 @@ pub struct LintCollection;
 impl LintCollection {
     pub fn all<'a>(cfg: Config, object_repository: &'a Box<dyn NewObjectRepository>) -> LintList<'a> {
         let required = linters::lints::required_labels::RequiredLabels::new(cfg.required_labels.clone());
-        //let overlapping = linters::lints::overlapping_probes::OverlappingProbes::default();
+        let overlapping = linters::lints::overlapping_probes::OverlappingProbes::default();
         //let never = linters::lints::never_restart_with_liveness_probe::NeverRestartWithLivenessProbe::default();
         //let service_labels = linters::lints::service_without_matching_labels::ServiceWithoutMatchingLabels::new(&object_repository);
         let passwords = linters::lints::environment_passwords::EnvironmentPasswords::new(cfg.environment_passwords.clone());
@@ -35,7 +35,7 @@ impl LintCollection {
 
         vec![
             Box::new(required),
-           // Box::new(overlapping),
+            Box::new(overlapping),
             //Box::new(never),
             //Box::new(service_labels),
             Box::new(passwords),
