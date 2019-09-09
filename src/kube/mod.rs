@@ -4,10 +4,11 @@ use k8s_openapi::api::core::v1::{ServiceSpec, ServiceStatus};
 use k8s_openapi::api::apps::v1::{DeploymentSpec, DeploymentStatus};
 use k8s_openapi::api::autoscaling::v1::{HorizontalPodAutoscalerSpec, HorizontalPodAutoscalerStatus};
 use k8s_openapi::api::policy::v1beta1::{PodDisruptionBudgetSpec, PodDisruptionBudgetStatus};
-use serde::Deserialize;
+use crate::linters::KubeObjectType;
 
 pub mod api;
-pub mod file;
+pub mod api_v2;
+// pub mod file;
 
 pub struct Identifier {
     name: String,
@@ -71,12 +72,7 @@ pub trait ObjectRepository {
     fn horizontal_pod_autoscaler(&self) -> Vec<Object<HorizontalPodAutoscalerSpec, HorizontalPodAutoscalerStatus>>;
 }
 
-#[derive(Deserialize, Clone)]
-#[serde(tag = "kind")]
-pub enum KubeObjectType {
-    Pod(Object<PodSpec, PodStatus>),
-    Service(Object<ServiceSpec, ServiceStatus>),
-    PodDisruptionBudget(Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>),
-    Deployment(Object<DeploymentSpec, DeploymentStatus>),
-    HorizontalPodAutoscaler(Object<HorizontalPodAutoscalerSpec, HorizontalPodAutoscalerStatus>),
+pub trait NewObjectRepository {
+    fn all(&self) -> &Vec<KubeObjectType>;
+    fn find(&self, id: &Identifier) -> Option<&KubeObjectType>;
 }

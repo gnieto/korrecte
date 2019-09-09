@@ -1,23 +1,11 @@
-use kube::api::{Object};
-use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
-use k8s_openapi::api::core::v1::{ServiceSpec, ServiceStatus};
-use k8s_openapi::api::policy::v1beta1::{PodDisruptionBudgetSpec, PodDisruptionBudgetStatus};
 use crate::config::Config;
-use crate::reporting::Reporter;
 use crate::linters;
-use crate::kube::ObjectRepository;
+use crate::kube::NewObjectRepository;
 
 pub(crate) mod lints;
 pub(crate) mod evaluator;
 mod lint;
-pub use lint::Lint;
-
-pub trait WithSpec: Lint {
-    fn spec(&self) -> LintSpec;
-}
-
-pub trait LintWithSpec {}
-impl<T: Lint + WithSpec> LintWithSpec for T {}
+pub use lint::{Lint, KubeObjectType};
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub enum Group {
@@ -32,12 +20,12 @@ pub struct LintSpec {
     pub name: String,
 }
 
-pub type LintList<'a> = Vec<Box<dyn LintWithSpec + 'a>>;
+pub type LintList<'a> = Vec<Box<dyn Lint + 'a>>;
 
 pub struct LintCollection;
 
 impl LintCollection {
-    pub fn all<'a>(cfg: Config, object_repository: &'a Box<dyn ObjectRepository>) -> LintList<'a> {
+    pub fn all<'a>(cfg: Config, object_repository: &'a Box<dyn NewObjectRepository>) -> LintList<'a> {
         // let required = linters::lints::required_labels::RequiredLabels::new(cfg.required_labels.clone());
         //let overlapping = linters::lints::overlapping_probes::OverlappingProbes::default();
         //let never = linters::lints::never_restart_with_liveness_probe::NeverRestartWithLivenessProbe::default();

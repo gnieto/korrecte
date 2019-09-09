@@ -1,27 +1,36 @@
 use crate::linters::LintList;
-use crate::kube::ObjectRepository;
-use crate::reporting::Reporter;
+use crate::kube::NewObjectRepository;
+use crate::reporting::{Reporter, Finding};
+use crate::linters::KubeObjectType;
 
 pub struct OneShotEvaluator;
 
 impl OneShotEvaluator {
-    pub fn evaluate(reporter: &dyn Reporter, list: LintList, object_repository: &Box<dyn ObjectRepository>) {
-        /*for pod in object_repository.pods().iter() {
-            for lint in list.iter() {
-                lint.pod(pod, reporter);
+    pub fn evaluate(reporter: &dyn Reporter, list: LintList, object_repository: &Box<dyn NewObjectRepository>) {
+        for lint in list.iter() {
+            for object in object_repository.all() {
+                match object {
+                    &KubeObjectType::V1Pod(ref o) => {
+                        Self::report_lints(reporter, lint.v1_pod(o));
+                    },
+                    &KubeObjectType::V1Node(ref o) => {
+                        Self::report_lints(reporter, lint.v1_node(o));
+                    },
+                    &KubeObjectType::V1Service(ref o) => {
+                        Self::report_lints(reporter, lint.v1_service(o));
+                    },
+                    &KubeObjectType::V1Deployment(ref o) => {
+                        Self::report_lints(reporter, lint.v1_deployment(o));
+                    },
+                    _ => {}
+                }
             }
         }
+    }
 
-        for svc in object_repository.services().iter() {
-            for lint in list.iter() {
-                lint.service(svc, reporter);
-            }
+    fn report_lints(reporter: &dyn Reporter, findings: Vec<Finding>) {
+        for f in findings {
+            reporter.report(f);
         }
-
-        for pdb in object_repository.pod_disruption_budgets().iter() {
-            for lint in list.iter() {
-                lint.pod_disruption_budget(pdb, reporter);
-            }
-        }*/
     }
 }

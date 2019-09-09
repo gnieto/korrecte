@@ -1,11 +1,10 @@
-use crate::linters::{Lint, WithSpec, LintSpec, Group};
+use crate::linters::{Lint, LintSpec, Group};
 
 use kube::api::Object;
 use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
-use crate::reporting::{Reporter, Finding};
+use crate::reporting::Finding;
 use k8s_openapi::api::core::v1::{Container, EnvVar};
 use serde::Deserialize;
-use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 
 /// **What it does:** Finds passwords or keys on object manifests.
 ///
@@ -21,20 +20,11 @@ pub(crate) struct EnvironmentPasswords {
     config: Config,
 }
 
-impl WithSpec for EnvironmentPasswords {
-    fn spec(&self) -> LintSpec {
-        LintSpec {
-            group: Group::Security,
-            name: "environment_passwords".to_string(),
-        }
-    }
-}
-
 impl Lint for EnvironmentPasswords {
-    fn v1_pod(&self, pod: &PodSpec, metadata: &ObjectMeta) -> Option<Vec<Finding>> {
+    fn v1_pod(&self, pod: &Object<PodSpec, PodStatus>) -> Vec<Finding> {
         let mut findings = Vec::new();
 
-        let env_vars_with_secrets: Vec<&EnvVar> = pod.containers
+        let env_vars_with_secrets: Vec<&EnvVar> = pod.spec.containers
             .iter()
             .map(|c: &Container| c.env.as_ref())
             .flatten()
@@ -44,13 +34,20 @@ impl Lint for EnvironmentPasswords {
 
 
         for environment_var in env_vars_with_secrets {
-            let finding = Finding::new(self.spec().clone(), metadata.clone())
+            let finding = Finding::new(self.spec().clone(), pod.metadata.clone())
                 .add_metadata("environment_var".to_string(), environment_var.name.clone());
 
             findings.push(finding);
         }
 
-        Some(findings)
+        findings
+    }
+
+    fn spec(&self) -> LintSpec {
+        LintSpec {
+            group: Group::Security,
+            name: "environment_passwords".to_string(),
+        }
     }
 }
 
@@ -113,10 +110,12 @@ mod tests {
     use serde_json::json;
     use crate::linters::lints::environment_passwords::{EnvironmentPasswords, Config};
     use crate::linters::Lint;
-    use kube::api::Object;
+    use kube::api::{Object};
     use crate::reporting::{SingleThreadedReporter, Reporter};
     use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
     use serde_json::Value;
+    use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
+    use crate::linters::WithSpec;
 
     #[test]
     fn it_finds_passwords_on_pods() {
@@ -135,10 +134,9 @@ mod tests {
 
         let linter = EnvironmentPasswords::new(Config::default());
 
-        linter.pod(&pod, &reporter);
-        let lints = reporter.findings();
-        assert_eq!(1, lints.len());
-        let finding= &lints[0];
+        let findings = linter.v1_pod(&pod.spec, &ObjectMeta::default()).unwrap();
+        assert_eq!(1, findings.len());
+        let finding= &findings[0];
         assert_eq!(finding.spec(), &linter.spec());
         assert_eq!("ADMIN_PASSWORD", finding.lint_metadata().get("environment_var".into()).unwrap());
     }
@@ -161,8 +159,7 @@ mod tests {
 
         let linter = EnvironmentPasswords::new(Config::default());
 
-        linter.pod(&pod, &reporter);
-        let lints = reporter.findings();
+        let lints = linter.v1_pod(&pod.spec, &ObjectMeta::default()).unwrap();
         assert_eq!(0, lints.len());
     }
 
@@ -179,8 +176,7 @@ mod tests {
 
         let linter = EnvironmentPasswords::new(Config::default());
 
-        linter.pod(&pod, &reporter);
-        let lints = reporter.findings();
+        let lints = linter.v1_pod(&pod.spec, &ObjectMeta::default()).unwrap();
         assert_eq!(1, lints.len());
         let finding= &lints[0];
         assert_eq!(finding.spec(), &linter.spec());
@@ -209,8 +205,8 @@ mod tests {
         let config = Config::new(vec!["SUSPICIOUS".to_string(), "ANOTHER_KEY".to_string()]);
         let linter = EnvironmentPasswords::new(config);
 
-        linter.pod(&pod, &reporter);
-        let lints = reporter.findings();
+        let lints = linter.v1_pod(&pod.spec, &ObjectMeta::default()).unwrap();
+
         assert_eq!(2, lints.len());
         let finding= &lints[0];
         assert_eq!(finding.spec(), &linter.spec());

@@ -1,9 +1,9 @@
 use crate::linters::LintSpec;
-use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use std::collections::HashMap;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::ops::Deref;
+use kube::api::ObjectMeta;
 
 pub trait Reporter {
     fn report(&self, finding: Finding);
