@@ -32,7 +32,7 @@ fn main() {
 ", ns, lint, enum_str);
 
     write_to(&source.trim(), "../src/linters/lint.rs");
-    write_to(&build_kube_client(&specs), "../src/kube/api_v2.rs")
+    write_to(&build_kube_client(&specs), "../src/kube/api.rs")
 }
 
 fn build_kube_client(specs: &[&str]) -> String {
@@ -120,27 +120,6 @@ impl ApiObjectRepository {{
         }});
 
         Ok(pod_reflect)
-    }}
-
-    fn find_object<K: 'static + Send + Sync + Clone + DeserializeOwned + KubeObject>(id: &Identifier, reflector: &Reflector<K>) -> Option<K> {{
-        let objs = reflector.read().ok()?;
-
-        objs.iter()
-            .find_map(|o| {{
-                if id.matches_with(o.meta()) {{
-                    Some(o.clone())
-                }} else {{
-                    None
-                }}
-            }})
-    }}
-
-    fn all_objects<K: 'static + Send + Sync + Clone + DeserializeOwned + KubeObject>(reflector: &Reflector<K>) -> Vec<K> {{
-        reflector.read()
-            .unwrap_or_default()
-            .iter()
-            .map(|element| element.clone())
-            .collect()
     }}
 }}
 
