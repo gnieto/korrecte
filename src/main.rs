@@ -21,7 +21,7 @@ use clap::{App, ArgMatches};
 use clap::load_yaml;
 use crate::kube::NewObjectRepository;
 use crate::error::KorrecteError;
-use crate::kube::api_v2::{ApiObjectRepository, FrozenObjectRepository};
+use crate::kube::api::{ApiObjectRepository, FrozenObjectRepository};
 
 fn main() -> Result<(), KorrecteError>{
     let yaml = load_yaml!("cli.yaml");

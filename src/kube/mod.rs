@@ -7,7 +7,6 @@ use k8s_openapi::api::policy::v1beta1::{PodDisruptionBudgetSpec, PodDisruptionBu
 use crate::linters::KubeObjectType;
 
 pub mod api;
-pub mod api_v2;
 // pub mod file;
 
 pub struct Identifier {

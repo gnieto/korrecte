@@ -1,36 +1,35 @@
+
 use kube::api::{Object, Reflector, KubeObject, Api};
 use kube::config::Configuration;
 use kube::client::APIClient;
 use kube::Result;
-use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
-use k8s_openapi::api::core::v1::{ServiceSpec, ServiceStatus};
-use k8s_openapi::api::apps::v1::{DeploymentSpec, DeploymentStatus};
-use k8s_openapi::api::autoscaling::v1::{HorizontalPodAutoscalerSpec, HorizontalPodAutoscalerStatus};
-use k8s_openapi::api::policy::v1beta1::{PodDisruptionBudgetSpec, PodDisruptionBudgetStatus};
+
+use k8s_openapi::api::core;
+use k8s_openapi::api::apps;
+
+
 use serde::de::DeserializeOwned;
 use super::{ObjectRepository, Identifier};
+use crate::linters::KubeObjectType;
+use crate::kube::NewObjectRepository;
 
 #[derive(Clone)]
 pub struct ApiObjectRepository {
-    pods_reflector: Reflector<Object<PodSpec, PodStatus>>,
-    service_reflector: Reflector<Object<ServiceSpec, ServiceStatus>>,
-    pdb_reflector: Reflector<Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>>,
-    deploy_reflector: Reflector<Object<DeploymentSpec, DeploymentStatus>>,
+	node: Reflector<Object<core::v1::NodeSpec, core::v1::NodeStatus>>,
+	pod: Reflector<Object<core::v1::PodSpec, core::v1::PodStatus>>,
+	service: Reflector<Object<core::v1::ServiceSpec, core::v1::ServiceStatus>>,
+	deployment: Reflector<Object<apps::v1::DeploymentSpec, apps::v1::DeploymentStatus>>,
 }
 
 impl ApiObjectRepository {
     pub fn new(kube_config: Configuration) -> Result<Self> {
         let client = APIClient::new(kube_config);
-        let pods_reflector = ApiObjectRepository::initialize_reflector(Api::v1Pod(client.clone()))?;
-        let service_reflector = ApiObjectRepository::initialize_reflector(Api::v1Service(client.clone()))?;
-        let pdb_reflector = ApiObjectRepository::initialize_reflector(Api::v1beta1PodDisruptionBudget(client.clone()))?;
-        let deploy_reflector = ApiObjectRepository::initialize_reflector(Api::v1Deployment(client.clone()))?;
 
         Ok(ApiObjectRepository {
-            pods_reflector,
-            service_reflector,
-            pdb_reflector,
-            deploy_reflector,
+			node: ApiObjectRepository::initialize_reflector(Api::v1Node(client.clone()))?,
+			pod: ApiObjectRepository::initialize_reflector(Api::v1Pod(client.clone()))?,
+			service: ApiObjectRepository::initialize_reflector(Api::v1Service(client.clone()))?,
+			deployment: ApiObjectRepository::initialize_reflector(Api::v1Deployment(client.clone()))?,
         })
     }
 
@@ -49,56 +48,61 @@ impl ApiObjectRepository {
 
         Ok(pod_reflect)
     }
+}
 
-    fn find_object<K: 'static + Send + Sync + Clone + DeserializeOwned + KubeObject>(id: &Identifier, reflector: &Reflector<K>) -> Option<K> {
-        let objs = reflector.read().ok()?;
+pub struct FrozenObjectRepository {
+    objects: Vec<KubeObjectType>,
+}
 
-        objs.iter()
-            .find_map(|o| {
-                if id.matches_with(o.meta()) {
-                    Some(o.clone())
-                } else {
-                    None
-                }
-            })
-    }
+impl From<ApiObjectRepository> for FrozenObjectRepository {
+    fn from(api: ApiObjectRepository) -> Self {
+        let mut objects = Vec::new();
 
-    fn all_objects<K: 'static + Send + Sync + Clone + DeserializeOwned + KubeObject>(reflector: &Reflector<K>) -> Vec<K> {
-        reflector.read()
-            .unwrap_or_default()
-            .iter()
-            .map(|element| element.clone())
-            .collect()
+		objects.extend(
+            api.node.read()
+                    .unwrap()
+                    .iter()
+                    .map(|o| {
+                        KubeObjectType::V1Node(o.clone())
+                    })
+        );
+		objects.extend(
+            api.pod.read()
+                    .unwrap()
+                    .iter()
+                    .map(|o| {
+                        KubeObjectType::V1Pod(o.clone())
+                    })
+        );
+		objects.extend(
+            api.service.read()
+                    .unwrap()
+                    .iter()
+                    .map(|o| {
+                        KubeObjectType::V1Service(o.clone())
+                    })
+        );
+		objects.extend(
+            api.deployment.read()
+                    .unwrap()
+                    .iter()
+                    .map(|o| {
+                        KubeObjectType::V1Deployment(o.clone())
+                    })
+        );
+
+        FrozenObjectRepository {
+            objects,
+        }
     }
 }
 
-impl ObjectRepository for ApiObjectRepository {
-    fn pod(&self, id: &Identifier) -> Option<Object<PodSpec, PodStatus>> {
-        Self::find_object(id, &self.pods_reflector)
+impl NewObjectRepository for FrozenObjectRepository {
+    fn all(&self) -> &Vec<KubeObjectType> {
+        &self.objects
     }
 
-    fn pods(&self) -> Vec<Object<PodSpec, PodStatus>> {
-        Self::all_objects(&self.pods_reflector)
-    }
-
-    fn service(&self, id: &Identifier) -> Option<Object<ServiceSpec, ServiceStatus>> {
-        Self::find_object(id, &self.service_reflector)
-    }
-
-    fn services(&self) -> Vec<Object<ServiceSpec, ServiceStatus>> {
-        Self::all_objects(&self.service_reflector)
-    }
-
-    fn pod_disruption_budgets(&self) -> Vec<Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>> {
-        Self::all_objects(&self.pdb_reflector)
-    }
-
-    fn deployments(&self) -> Vec<Object<DeploymentSpec, DeploymentStatus>> {
-        Self::all_objects(&self.deploy_reflector)
-    }
-
-    fn horizontal_pod_autoscaler(&self) -> Vec<Object<HorizontalPodAutoscalerSpec, HorizontalPodAutoscalerStatus>> {
-        // Unimplemented
-        Vec::new()
+    fn find(&self, id: &Identifier) -> Option<&KubeObjectType> {
+        unimplemented!()
     }
 }
