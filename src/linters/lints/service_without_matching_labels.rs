@@ -4,7 +4,7 @@ use kube::api::Object;
 use k8s_openapi::api::core::v1::{ServiceSpec, ServiceStatus};
 use crate::reporting::Finding;
 use std::collections::BTreeMap;
-use crate::kube::NewObjectRepository;
+use crate::kube::ObjectRepository;
 
 /// **What it does:** Checks that services are well defined and has some matching
 /// object (defined by the service selector).
@@ -16,11 +16,11 @@ use crate::kube::NewObjectRepository;
 ///
 /// **References**
 pub(crate) struct ServiceWithoutMatchingLabels<'a> {
-    object_repository: &'a Box<dyn NewObjectRepository>,
+    object_repository: &'a Box<dyn ObjectRepository>,
 }
 
 impl<'a> ServiceWithoutMatchingLabels<'a> {
-    pub fn new(object_repository: &'a Box<dyn NewObjectRepository>) -> Self {
+    pub fn new(object_repository: &'a Box<dyn ObjectRepository>) -> Self {
         ServiceWithoutMatchingLabels {
             object_repository,
         }

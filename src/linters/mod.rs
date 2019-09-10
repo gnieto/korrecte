@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::linters;
-use crate::kube::NewObjectRepository;
+use crate::kube::ObjectRepository;
 
 pub(crate) mod lints;
 pub(crate) mod evaluator;
@@ -25,7 +25,7 @@ pub type LintList<'a> = Vec<Box<dyn Lint + 'a>>;
 pub struct LintCollection;
 
 impl LintCollection {
-    pub fn all<'a>(cfg: Config, object_repository: &'a Box<dyn NewObjectRepository>) -> LintList<'a> {
+    pub fn all<'a>(cfg: Config, object_repository: &'a Box<dyn ObjectRepository>) -> LintList<'a> {
         let required = linters::lints::required_labels::RequiredLabels::new(cfg.required_labels.clone());
         let overlapping = linters::lints::overlapping_probes::OverlappingProbes::default();
         let never = linters::lints::never_restart_with_liveness_probe::NeverRestartWithLivenessProbe::default();

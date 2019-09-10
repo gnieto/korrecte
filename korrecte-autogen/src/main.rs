@@ -163,7 +163,7 @@ use kube::Result;
 use serde::de::DeserializeOwned;
 use super::Identifier;
 use crate::linters::KubeObjectType;
-use crate::kube::NewObjectRepository;
+use crate::kube::ObjectRepository;
 
 #[derive(Clone)]
 pub struct ApiObjectRepository {{
@@ -212,7 +212,7 @@ impl From<ApiObjectRepository> for FrozenObjectRepository {{
     }}
 }}
 
-impl NewObjectRepository for FrozenObjectRepository {{
+impl ObjectRepository for FrozenObjectRepository {{
     fn all(&self) -> &Vec<KubeObjectType> {{
         &self.objects
     }}

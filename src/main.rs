@@ -19,7 +19,7 @@ use crate::linters::evaluator::OneShotEvaluator;
 use ::kube::config as kube_config;
 use clap::{App, ArgMatches};
 use clap::load_yaml;
-use crate::kube::NewObjectRepository;
+use crate::kube::ObjectRepository;
 use crate::error::KorrecteError;
 use crate::kube::api::{ApiObjectRepository, FrozenObjectRepository};
 
@@ -44,7 +44,7 @@ fn main() -> Result<(), KorrecteError>{
     Ok(())
 }
 
-fn build_object_repository(matches: &ArgMatches) -> Result<Box<dyn NewObjectRepository>, KorrecteError> {
+fn build_object_repository(matches: &ArgMatches) -> Result<Box<dyn ObjectRepository>, KorrecteError> {
     match matches.value_of("source") {
         Some("api") | None => {
             let config = kube_config::load_kube_config().map_err( |_| KorrecteError::Generic("Could not load kube config".into()))?;

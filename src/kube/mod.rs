@@ -1,9 +1,4 @@
-use kube::api::{ObjectMeta, Object};
-use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
-use k8s_openapi::api::core::v1::{ServiceSpec, ServiceStatus};
-use k8s_openapi::api::apps::v1::{DeploymentSpec, DeploymentStatus};
-use k8s_openapi::api::autoscaling::v1::{HorizontalPodAutoscalerSpec, HorizontalPodAutoscalerStatus};
-use k8s_openapi::api::policy::v1beta1::{PodDisruptionBudgetSpec, PodDisruptionBudgetStatus};
+use kube::api::ObjectMeta;
 use crate::linters::KubeObjectType;
 
 pub mod api;
@@ -42,38 +37,6 @@ impl Identifier {
 }
 
 pub trait ObjectRepository {
-    fn pod(&self, id: &Identifier) -> Option<Object<PodSpec, PodStatus>> {
-        self.pods()
-            .iter()
-            .filter(|p| id.matches_with(&p.metadata))
-            .next()
-            .cloned()
-    }
-
-    fn service(&self, id: &Identifier) -> Option<Object<ServiceSpec, ServiceStatus>> {
-        self.services()
-            .iter()
-            .filter(|s| id.matches_with(&s.metadata))
-            .next()
-            .cloned()
-    }
-
-    fn deployment(&self, id: &Identifier) -> Option<Object<DeploymentSpec, DeploymentStatus>> {
-        self.deployments()
-            .iter()
-            .filter(|s| id.matches_with(&s.metadata))
-            .next()
-            .cloned()
-    }
-
-    fn pods(&self) -> Vec<Object<PodSpec, PodStatus>>;
-    fn services(&self) -> Vec<Object<ServiceSpec, ServiceStatus>>;
-    fn pod_disruption_budgets(&self) -> Vec<Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>>;
-    fn deployments(&self) -> Vec<Object<DeploymentSpec, DeploymentStatus>>;
-    fn horizontal_pod_autoscaler(&self) -> Vec<Object<HorizontalPodAutoscalerSpec, HorizontalPodAutoscalerStatus>>;
-}
-
-pub trait NewObjectRepository {
     fn all(&self) -> &Vec<KubeObjectType>;
     fn find(&self, id: &Identifier) -> Option<&KubeObjectType>;
 }

@@ -1,12 +1,12 @@
 use crate::linters::LintList;
-use crate::kube::NewObjectRepository;
+use crate::kube::ObjectRepository;
 use crate::reporting::{Reporter, Finding};
 use crate::linters::KubeObjectType;
 
 pub struct OneShotEvaluator;
 
 impl OneShotEvaluator {
-    pub fn evaluate(reporter: &dyn Reporter, list: LintList, object_repository: &Box<dyn NewObjectRepository>) {
+    pub fn evaluate(reporter: &dyn Reporter, list: LintList, object_repository: &Box<dyn ObjectRepository>) {
         for lint in list.iter() {
             for object in object_repository.all() {
                 match object {

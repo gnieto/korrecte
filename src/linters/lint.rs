@@ -1,5 +1,5 @@
-use k8s_openapi::api::apps;
 use k8s_openapi::api::core;
+use k8s_openapi::api::apps;
 use kube::api::Object;
 use crate::linters::LintSpec;
 
