@@ -1,4 +1,5 @@
 #[derive(Debug)]
+#[allow(unused)]
 pub enum KorrecteError {
     Io(std::io::Error),
     Serde(toml::de::Error),

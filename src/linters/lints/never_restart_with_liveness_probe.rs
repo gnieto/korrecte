@@ -2,7 +2,7 @@ use crate::linters::{Lint, LintSpec, Group};
 
 use kube::api::Object;
 use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
-use crate::reporting::{Reporter, Finding};
+use crate::reporting::Finding;
 
 /// **What it does:** Finds pods which have a `Never` restart policy and have liveness probe set
 ///

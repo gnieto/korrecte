@@ -9,6 +9,7 @@ use crate::linters::KubeObjectType;
 pub mod api;
 // pub mod file;
 
+#[allow(unused)]
 pub struct Identifier {
     name: String,
     namespace: Option<String>,
@@ -32,6 +33,7 @@ impl From<ObjectMeta> for Identifier {
     }
 }
 
+#[allow(unused)]
 impl Identifier {
     pub fn matches_with(&self, meta: &ObjectMeta) -> bool {
         meta.name == self.name &&

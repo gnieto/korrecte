@@ -2,9 +2,9 @@ use crate::linters::{Lint, LintSpec, Group, KubeObjectType};
 
 use kube::api::Object;
 use k8s_openapi::api::core::v1::{ServiceSpec, ServiceStatus};
-use crate::reporting::{Reporter, Finding};
+use crate::reporting::Finding;
 use std::collections::BTreeMap;
-use crate::kube::{ObjectRepository, NewObjectRepository};
+use crate::kube::NewObjectRepository;
 
 /// **What it does:** Checks that services are well defined and has some matching
 /// object (defined by the service selector).
