@@ -24,13 +24,6 @@ use std::time::Duration;
 pub(crate) struct OverlappingProbes;
 
 impl Lint for OverlappingProbes {
-    fn spec(&self) -> LintSpec {
-        LintSpec {
-            group: Group::Configuration,
-            name: "overlapping_probes".to_string(),
-        }
-    }
-
     fn v1_pod(&self, pod: &Object<PodSpec, PodStatus>) -> Vec<Finding> {
         let mut findings = Vec::new();
 
@@ -39,6 +32,13 @@ impl Lint for OverlappingProbes {
         }
 
         findings
+    }
+
+    fn spec(&self) -> LintSpec {
+        LintSpec {
+            group: Group::Configuration,
+            name: "overlapping_probes".to_string(),
+        }
     }
 }
 

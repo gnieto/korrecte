@@ -17,19 +17,13 @@ use crate::reporting::{Reporter, Finding};
 pub(crate) struct NeverRestartWithLivenessProbe;
 
 impl Lint for NeverRestartWithLivenessProbe {
-    fn spec(&self) -> LintSpec {
-        LintSpec {
-            group: Group::Configuration,
-            name: "never_restart_with_liveness_probe".to_string(),
-        }
-    }
-
-    fn pod(&self, pod: &Object<PodSpec, PodStatus>, reporter: &dyn Reporter) {
+    fn v1_pod(&self, pod: &Object<PodSpec, PodStatus>) -> Vec<Finding> {
+        let mut findings = Vec::new();
         let restart_policy: String = pod.spec.restart_policy
             .clone()
             .unwrap_or_else(|| "Always".to_string());
         if restart_policy.to_ascii_lowercase() != "never" {
-            return
+            return findings;
         }
 
         let has_any_liveness_probe = pod.spec.containers
@@ -37,10 +31,19 @@ impl Lint for NeverRestartWithLivenessProbe {
             .any(|c| c.liveness_probe.is_some());
 
         if !has_any_liveness_probe {
-            return
+            return findings;
         }
 
         let finding = Finding::new(self.spec().clone(), pod.metadata.clone());
-            reporter.report(finding);
+        findings.push(finding);
+
+        findings
+    }
+
+    fn spec(&self) -> LintSpec {
+        LintSpec {
+            group: Group::Configuration,
+            name: "never_restart_with_liveness_probe".to_string(),
+        }
     }
 }
