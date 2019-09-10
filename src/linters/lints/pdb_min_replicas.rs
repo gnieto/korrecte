@@ -1,11 +1,11 @@
-use crate::linters::{Lint, LintSpec, Group};
+use crate::linters::{Lint, LintSpec, Group, KubeObjectType};
 
 use kube::api::Object;
 use k8s_openapi::api::apps::v1::{DeploymentSpec, DeploymentStatus};
 use k8s_openapi::api::autoscaling::v1::{HorizontalPodAutoscalerSpec, HorizontalPodAutoscalerStatus};
 use k8s_openapi::api::policy::v1beta1::{PodDisruptionBudgetSpec, PodDisruptionBudgetStatus};
 use k8s_openapi::apimachinery::pkg::util::intstr::IntOrString;
-use crate::reporting::{Reporter, Finding};
+use crate::reporting::Finding;
 use crate::kube::{ObjectRepository, Identifier};
 
 /// **What it does:** Checks that pod controllers associated to a pod disruption budget has at least one more replica
@@ -30,11 +30,15 @@ impl<'a> Lint for PdbMinReplicas<'a> {
         }
     }
 
-    fn pod_disruption_budget(&self, pdb: &Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>, reporter: &dyn Reporter) {
+    fn v1beta1_pod_disruption_budget(&self, pdb: &Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>) -> Vec<Finding> {
+        let mut findings = Vec::new();
+
         if let Some(pdb_min_available) = Self::get_min_replicas(pdb) {
-            self.matching_deployments(pdb, reporter, pdb_min_available);
-            self.matching_hpas(pdb, reporter, pdb_min_available);
+            self.matching_deployments(pdb, &mut findings, pdb_min_available);
+            self.matching_hpas(pdb, &mut findings, pdb_min_available);
         }
+
+        findings
     }
 }
 
@@ -55,24 +59,42 @@ impl<'a> PdbMinReplicas<'a> {
     }
 
     fn find_matching_deployments(&self, pdb: &Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>) -> Vec<Object<DeploymentSpec, DeploymentStatus>> {
-        self.object_repository.deployments()
+        self.object_repository.all()
             .iter()
+            .filter_map(|o| {
+                match o {
+                    KubeObjectType::V1Deployment(d) => Some(d),
+                    _ => None,
+                }
+            })
             .filter(|deploy| Self::deploy_matches_with_pdb(pdb, deploy))
             .cloned()
             .collect()
     }
 
     fn find_matching_hpa(&self, pdb: &Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>) -> Vec<Object<HorizontalPodAutoscalerSpec, HorizontalPodAutoscalerStatus>> {
-        self.object_repository.horizontal_pod_autoscaler()
+        self.object_repository.all()
             .iter()
+            .filter_map(|o| {
+                match o {
+                    KubeObjectType::V1HorizontalPodAutoscaler(hpa) => Some(hpa),
+                    _ => None,
+                }
+            })
             .filter(|hpa| {
                 if &hpa.spec.scale_target_ref.kind == "Deployment" {
                     let id = Identifier::from(hpa.spec.scale_target_ref.name.clone());
 
                     // Check if there's any target deployment which is targeted by the PDB
-                    self.object_repository.deployment(&id)
-                        .map(|deploy| Self::deploy_matches_with_pdb(pdb, &deploy))
-                        .unwrap_or(false)
+                    self.object_repository.find(&id)
+                        .iter()
+                        .filter_map(|object| {
+                            match object {
+                                KubeObjectType::V1Deployment(d) => Some(d),
+                                _ => None,
+                            }
+                        })
+                        .any(|deploy| Self::deploy_matches_with_pdb(pdb, &deploy))
                 } else {
                     false
                 }
@@ -81,7 +103,7 @@ impl<'a> PdbMinReplicas<'a> {
             .collect()
     }
 
-    fn matching_deployments(&self, pdb: &Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>, reporter: &dyn Reporter, pdb_min_available: i32) -> () {
+    fn matching_deployments(&self, pdb: &Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>, findings: &mut Vec<Finding>, pdb_min_available: i32) -> () {
         let matching_deployments = self.find_matching_deployments(pdb);
 
         matching_deployments
@@ -93,12 +115,12 @@ impl<'a> PdbMinReplicas<'a> {
                     let finding = Finding::new(self.spec().clone(), pdb.metadata.clone())
                         .add_metadata("deploy_replicas", deploy_replicas)
                         .add_metadata("pdb_min_available", pdb_min_available.to_string());
-                    reporter.report(finding);
+                    findings.push(finding);
                 }
             })
     }
 
-    fn matching_hpas(&self, pdb: &Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>, reporter: &dyn Reporter, pdb_min_available: i32) -> () {
+    fn matching_hpas(&self, pdb: &Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>, findings: &mut Vec<Finding>, pdb_min_available: i32) -> () {
         let matching_hpa = self.find_matching_hpa(pdb);
 
         matching_hpa
@@ -110,7 +132,7 @@ impl<'a> PdbMinReplicas<'a> {
                     let finding = Finding::new(self.spec().clone(), pdb.metadata.clone())
                         .add_metadata("hpa_replicas", hpa_replicas)
                         .add_metadata("pdb_min_available", pdb_min_available.to_string());
-                    reporter.report(finding);
+                    findings.push(finding);
                 }
             })
     }

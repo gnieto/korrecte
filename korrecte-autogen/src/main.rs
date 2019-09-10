@@ -16,7 +16,9 @@ fn main() {
 //        "k8s_openapi::api::apps::v1::ReplicaSetSpec",
 //        "k8s_openapi::api::apps::v1::StatefulSetSpec",
 
-        // "k8s_openapi::api::policy::v1beta1::PodDisruptionBudgetSpec",
+        OpenapiResource::new("k8s_openapi::api::policy::v1beta1::PodDisruptionBudget", false),
+
+        OpenapiResource::new("k8s_openapi::api::autoscaling::v1::HorizontalPodAutoscaler", false),
     ];
 
     let lint = build_lint_trait(&specs);
@@ -270,7 +272,9 @@ fn build_enum(specs: &[OpenapiResource]) -> String {
     }
 
 
-    format!("pub enum KubeObjectType {{
+    format!("
+    #[allow(unused)]
+    pub enum KubeObjectType {{
 {}
     #[doc(hidden)]
     __Nonexhaustive,
