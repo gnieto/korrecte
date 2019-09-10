@@ -1,10 +1,10 @@
-use crate::linters::{Lint, LintSpec, Group};
+use crate::linters::{Lint, LintSpec, Group, KubeObjectType};
 
 use kube::api::Object;
 use k8s_openapi::api::core::v1::{ServiceSpec, ServiceStatus};
 use crate::reporting::{Reporter, Finding};
 use std::collections::BTreeMap;
-use crate::kube::ObjectRepository;
+use crate::kube::{ObjectRepository, NewObjectRepository};
 
 /// **What it does:** Checks that services are well defined and has some matching
 /// object (defined by the service selector).
@@ -16,11 +16,11 @@ use crate::kube::ObjectRepository;
 ///
 /// **References**
 pub(crate) struct ServiceWithoutMatchingLabels<'a> {
-    object_repository: &'a Box<dyn ObjectRepository>,
+    object_repository: &'a Box<dyn NewObjectRepository>,
 }
 
 impl<'a> ServiceWithoutMatchingLabels<'a> {
-    pub fn new(object_repository: &'a Box<dyn ObjectRepository>) -> Self {
+    pub fn new(object_repository: &'a Box<dyn NewObjectRepository>) -> Self {
         ServiceWithoutMatchingLabels {
             object_repository,
         }
@@ -28,18 +28,18 @@ impl<'a> ServiceWithoutMatchingLabels<'a> {
 }
 
 impl<'a> Lint for ServiceWithoutMatchingLabels<'a> {
-    fn spec(&self) -> LintSpec {
-        LintSpec {
-            group: Group::Configuration,
-            name: "service_without_matching_labels".to_string(),
-        }
-    }
-
-    fn service(&self, service: &Object<ServiceSpec, ServiceStatus>, reporter: &dyn Reporter) {
+    fn v1_service(&self, service: &Object<ServiceSpec, ServiceStatus>) -> Vec<Finding> {
+        let mut findings = Vec::new();
         let selectors: BTreeMap<String, String> = service.spec.selector.clone().unwrap_or_default();
 
-        let any_matching_pod = self.object_repository.pods()
+        let any_matching_pod = self.object_repository.all()
             .iter()
+            .filter_map(|object| {
+                match object {
+                    KubeObjectType::V1Pod(p) => Some(p),
+                    _ => None,
+                }
+            })
             .any(|pod| {
                 let pod_labels = &pod.metadata.labels;
 
@@ -53,7 +53,16 @@ impl<'a> Lint for ServiceWithoutMatchingLabels<'a> {
 
         if !any_matching_pod {
             let finding= Finding::new(self.spec().clone(), service.metadata.clone());
-            reporter.report(finding);
+            findings.push(finding);
+        }
+
+        findings
+    }
+
+    fn spec(&self) -> LintSpec {
+        LintSpec {
+            group: Group::Configuration,
+            name: "service_without_matching_labels".to_string(),
         }
     }
 }
