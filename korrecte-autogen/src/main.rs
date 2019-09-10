@@ -6,13 +6,13 @@ use std::collections::HashSet;
 fn main() {
     let specs = [
 //        "k8s_openapi::api::core::v1::NamespaceSpec",
-        "k8s_openapi::api::core::v1::NodeSpec",
-        "k8s_openapi::api::core::v1::PodSpec",
+        OpenapiResource::new("k8s_openapi::api::core::v1::Node", true),
+        OpenapiResource::new("k8s_openapi::api::core::v1::Pod", true),
 //        "k8s_openapi::api::core::v1::ReplicationControllerSpec",
-        "k8s_openapi::api::core::v1::ServiceSpec",
+        OpenapiResource::new("k8s_openapi::api::core::v1::Service", true),
 
 //        "k8s_openapi::api::apps::v1::DaemonSetSpec",
-        "k8s_openapi::api::apps::v1::DeploymentSpec",
+        OpenapiResource::new("k8s_openapi::api::apps::v1::Deployment", true),
 //        "k8s_openapi::api::apps::v1::ReplicaSetSpec",
 //        "k8s_openapi::api::apps::v1::StatefulSetSpec",
 
@@ -35,7 +35,92 @@ fn main() {
     write_to(&build_kube_client(&specs), "../src/kube/api.rs")
 }
 
-fn build_kube_client(specs: &[&str]) -> String {
+struct OpenapiResource<'a> {
+    resource: &'a str,
+    has_kube: bool,
+}
+
+impl<'a> OpenapiResource<'a> {
+    pub fn new(resource: &'a str, has_kube: bool) -> Self {
+        OpenapiResource {
+            resource,
+            has_kube,
+        }
+    }
+
+    pub fn variant(&self) -> String {
+        let mut split: Vec<&str> = self.resource.split("::").collect();
+        split.reverse();
+
+        let object = split.get(0).unwrap();
+        let version = split.get(1).unwrap();
+        let variant = format!("{}{}", version, object);
+
+        uppercase_first(&variant)
+    }
+
+    pub fn clean_name(&self) -> String {
+        let mut split: Vec<&str> = self.resource.split("::").collect();
+        split.reverse();
+
+        let object = split.get(0).unwrap().to_snake_case();
+
+        object
+    }
+
+    pub fn spec(&self) -> String {
+        let mut split: Vec<&str> = self.resource.split("::").collect();
+        split.reverse();
+
+        let object = split.get(0).unwrap();
+        let version = split.get(1).unwrap();
+        let ty = split.get(2).unwrap();
+
+        format!("{}::{}::{}Spec", ty, version, object)
+    }
+
+    pub fn status(&self) -> String {
+        let mut split: Vec<&str> = self.resource.split("::").collect();
+        split.reverse();
+
+        let object = split.get(0).unwrap();
+        let version = split.get(1).unwrap();
+        let ty = split.get(2).unwrap();
+
+        format!("{}::{}::{}Status", ty, version, object)
+    }
+
+    pub fn lint_name(&self) -> String {
+        let mut split: Vec<&str> = self.resource.split("::").collect();
+        split.reverse();
+
+        let version = split.get(1).unwrap();
+
+        format!("{}_{}", version, self.clean_name())
+    }
+
+    pub fn api_name(&self) -> Option<String> {
+        if !self.has_kube {
+            return None;
+        }
+
+        let mut split: Vec<&str> = self.resource.split("::").collect();
+        split.reverse();
+
+        let object = split.get(0).unwrap();
+        let version = split.get(1).unwrap();
+
+        Some(format!("{}{}", version, object))
+    }
+
+    pub fn base_namespace(&self) -> String {
+        let split: Vec<&str> = self.resource.split("::").collect();
+        let count = split.len();
+
+        split[0..count-2].join("::").to_string()
+    }
+}
+fn build_kube_client(specs: &[OpenapiResource]) -> String {
 
     let namespaces = r#"
 use k8s_openapi::api::core;
@@ -48,25 +133,14 @@ use k8s_openapi::api::apps;
     let mut caches = Vec::new();
 
     for s in specs {
-        let mut split: Vec<&str> = s.split("::").collect();
-        split.reverse();
+        let maybe_api_name = s.api_name();
+        if maybe_api_name.is_none() {
+            continue;
+        }
+        let api_name = maybe_api_name.unwrap();
 
-        let object = split.get(0).unwrap();
-
-        let clean_name = split.get(0).unwrap()
-            .trim_end_matches("Spec")
-            .to_snake_case();
-        let version = split.get(1).unwrap();
-        let ty = split.get(2).unwrap();
-
-        let spec = format!("{}::{}::{}", ty, version, object);
-        let status = spec.replace("Spec", "Status");
-        let api_name = format!("{}{}", version, object.replace("Spec", ""));
-        let variant = format!("{}{}", version, object.replace("Spec", ""));
-
-
-        fields.push(format!("\t{}: Reflector<Object<{}, {}>>,", clean_name, spec, status));
-        inits.push(format!("\t\t\t{}: ApiObjectRepository::initialize_reflector(Api::{}(client.clone()))?,", clean_name, api_name));
+        fields.push(format!("\t{}: Reflector<Object<{}, {}>>,", s.clean_name(), s.spec(), s.status()));
+        inits.push(format!("\t\t\t{}: ApiObjectRepository::initialize_reflector(Api::{}(client.clone()))?,", s.clean_name(), api_name));
 
         let cache = format!("\t\tobjects.extend(
             api.{}.read()
@@ -75,10 +149,9 @@ use k8s_openapi::api::apps;
                     .map(|o| {{
                         KubeObjectType::{}(o.clone())
                     }})
-        );", clean_name, uppercase_first(&variant));
+        );", s.clean_name(), s.variant());
         caches.push(cache);
     }
-    let assignements = "";
 
     format!(
         r#"
@@ -153,14 +226,10 @@ impl NewObjectRepository for FrozenObjectRepository {{
 }
 
 
-fn build_imports(specs: &[&str]) -> String {
+fn build_imports(specs: &[OpenapiResource]) -> String {
     let distinct: HashSet<String> = specs.iter()
-        .map(|namespace|  {
-            let split: Vec<&str> = namespace.split("::").collect();
-            let count = split.len();
-            let ns = split[0..count-2].join("::").to_string();
-
-            format!("use {};", ns)
+        .map(|resource|  {
+            format!("use {};", resource.base_namespace())
         })
         .collect();
 
@@ -170,27 +239,19 @@ fn build_imports(specs: &[&str]) -> String {
     namespaces.join("\n")
 }
 
-fn build_lint_trait(specs: &[&str]) -> String {
+fn build_lint_trait(specs: &[OpenapiResource]) -> String {
     let mut spec_str = String::new();
 
     for s in specs {
-        let mut split: Vec<&str> = s.split("::").collect();
-        split.reverse();
+        let struct_path = format!("Object<{}, {}>", s.spec(), s.status());
 
-        let object = split.get(0).unwrap();
-
-        let clean_name = split.get(0).unwrap()
-            .trim_end_matches("Spec")
-            .to_snake_case();
-        let version = split.get(1).unwrap();
-        let ty = split.get(2).unwrap();
-        let method_name = format!("{}_{}", version, clean_name);
-
-        let spec = object;
-        let status = object.replace("Spec", "Status");
-        let struct_path = format!("Object<{}::{}::{}, {}::{}::{}>", ty, version, spec, ty, version, status);
-
-        spec_str.push_str(&format!("\tfn {}(&self, _{}: &{}) -> Vec<crate::reporting::Finding> {{ Vec::new() }}\n", method_name, clean_name, struct_path));
+        spec_str.push_str(
+            &format!("\tfn {}(&self, _{}: &{}) -> Vec<crate::reporting::Finding> {{ Vec::new() }}\n",
+                     s.lint_name(),
+                     s.clean_name(),
+                     struct_path
+            )
+        );
     }
 
 
@@ -200,26 +261,12 @@ fn build_lint_trait(specs: &[&str]) -> String {
 }}", spec_str)
 }
 
-fn build_enum(specs: &[&str]) -> String {
+fn build_enum(specs: &[OpenapiResource]) -> String {
     let mut variants = String::new();
 
     for s in specs {
-        let mut split: Vec<&str> = s.split("::").collect();
-        split.reverse();
-
-        let object = split.get(0).unwrap();
-
-        let clean_name = split.get(0).unwrap()
-            .trim_end_matches("Spec");
-        let version = split.get(1).unwrap();
-        let ty = split.get(2).unwrap();
-        let variant = format!("{}{}", version, clean_name);
-
-        let spec = object;
-        let status = object.replace("Spec", "Status");
-        let ty = format!("Object<{}::{}::{}, {}::{}::{}>", ty, version, spec, ty, version, status);
-
-        variants.push_str(&format!("\t{}({}), \n", uppercase_first(&variant), ty));
+        let ty = format!("Object<{}, {}>", s.spec(), s.status());
+        variants.push_str(&format!("\t{}({}), \n", s.variant(), ty));
     }
 
 
