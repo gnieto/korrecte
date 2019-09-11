@@ -3,11 +3,9 @@ use kube::api::{Object, Reflector, KubeObject, Api};
 use kube::config::Configuration;
 use kube::client::APIClient;
 use kube::Result;
-
 use k8s_openapi::api::core;
 use k8s_openapi::api::apps;
-
-
+use k8s_openapi::api::autoscaling;
 use serde::de::DeserializeOwned;
 use super::Identifier;
 use crate::linters::KubeObjectType;
@@ -19,6 +17,7 @@ pub struct ApiObjectRepository {
 	pod: Reflector<Object<core::v1::PodSpec, core::v1::PodStatus>>,
 	service: Reflector<Object<core::v1::ServiceSpec, core::v1::ServiceStatus>>,
 	deployment: Reflector<Object<apps::v1::DeploymentSpec, apps::v1::DeploymentStatus>>,
+	horizontal_pod_autoscaler: Reflector<Object<autoscaling::v1::HorizontalPodAutoscalerSpec, autoscaling::v1::HorizontalPodAutoscalerStatus>>,
 }
 
 impl ApiObjectRepository {
@@ -30,6 +29,7 @@ impl ApiObjectRepository {
 			pod: ApiObjectRepository::initialize_reflector(Api::v1Pod(client.clone()))?,
 			service: ApiObjectRepository::initialize_reflector(Api::v1Service(client.clone()))?,
 			deployment: ApiObjectRepository::initialize_reflector(Api::v1Deployment(client.clone()))?,
+			horizontal_pod_autoscaler: ApiObjectRepository::initialize_reflector(Api::v1HorizontalPodAutoscaler(client.clone()))?,
         })
     }
 
@@ -88,6 +88,14 @@ impl From<ApiObjectRepository> for FrozenObjectRepository {
                     .iter()
                     .map(|o| {
                         KubeObjectType::V1Deployment(o.clone())
+                    })
+        );
+		objects.extend(
+            api.horizontal_pod_autoscaler.read()
+                    .unwrap()
+                    .iter()
+                    .map(|o| {
+                        KubeObjectType::V1HorizontalPodAutoscaler(o.clone())
                     })
         );
 

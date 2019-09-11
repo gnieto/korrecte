@@ -1,6 +1,6 @@
-use k8s_openapi::api::apps;
-use k8s_openapi::api::autoscaling;
 use k8s_openapi::api::policy;
+use k8s_openapi::api::autoscaling;
+use k8s_openapi::api::apps;
 use k8s_openapi::api::core;
 use kube::api::Object;
 use crate::linters::LintSpec;

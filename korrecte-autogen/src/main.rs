@@ -18,7 +18,7 @@ fn main() {
 
         OpenapiResource::new("k8s_openapi::api::policy::v1beta1::PodDisruptionBudget", false),
 
-        OpenapiResource::new("k8s_openapi::api::autoscaling::v1::HorizontalPodAutoscaler", false),
+        OpenapiResource::new("k8s_openapi::api::autoscaling::v1::HorizontalPodAutoscaler", true),
     ];
 
     let lint = build_lint_trait(&specs);
@@ -123,16 +123,10 @@ impl<'a> OpenapiResource<'a> {
     }
 }
 fn build_kube_client(specs: &[OpenapiResource]) -> String {
-
-    let namespaces = r#"
-use k8s_openapi::api::core;
-use k8s_openapi::api::apps;
-
-"#;
-
     let mut fields = Vec::new();
     let mut inits = Vec::new();
     let mut caches = Vec::new();
+    let mut namespaces = HashSet::new();
 
     for s in specs {
         let maybe_api_name = s.api_name();
@@ -153,7 +147,10 @@ use k8s_openapi::api::apps;
                     }})
         );", s.clean_name(), s.variant());
         caches.push(cache);
+        namespaces.insert(format!("use {};", s.base_namespace()));
     }
+
+    let namespaces = namespaces.iter().cloned().collect::<Vec<String>>().join("\n");
 
     format!(
         r#"
