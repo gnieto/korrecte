@@ -22,6 +22,8 @@ use clap::load_yaml;
 use crate::kube::ObjectRepository;
 use crate::error::KorrecteError;
 use crate::kube::api::{ApiObjectRepository, FrozenObjectRepository};
+use crate::kube::file::FileObjectRepository;
+use std::path::Path;
 
 fn main() -> Result<(), KorrecteError>{
     let yaml = load_yaml!("cli.yaml");
@@ -50,10 +52,10 @@ fn build_object_repository(matches: &ArgMatches) -> Result<Box<dyn ObjectReposit
             let config = kube_config::load_kube_config().map_err( |_| KorrecteError::Generic("Could not load kube config".into()))?;
             Ok(Box::new(FrozenObjectRepository::from(ApiObjectRepository::new(config)?)))
         },
-        /*Some("file") => {
+        Some("file") => {
             let path = matches.value_of("path").ok_or(KorrecteError::Generic("Missing file path".into()))?;
             Ok(Box::new(FileObjectRepository::new(Path::new(path))?))
-        }*/
+        },
         _ => Err(KorrecteError::Generic("Could not build an object repository".into())),
     }
 }

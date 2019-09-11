@@ -121,6 +121,17 @@ impl<'a> OpenapiResource<'a> {
 
         split[0..count-2].join("::").to_string()
     }
+
+    pub fn parts(&self) -> (&str, &str, &str) {
+        let mut split: Vec<&str> = self.resource.split("::").collect();
+        split.reverse();
+
+        let object = split.get(0).unwrap();
+        let version = split.get(1).unwrap();
+        let ty = split.get(2).unwrap();
+
+        (ty, object, version)
+    }
 }
 fn build_kube_client(specs: &[OpenapiResource]) -> String {
     let mut fields = Vec::new();
@@ -235,6 +246,7 @@ fn build_imports(specs: &[OpenapiResource]) -> String {
     let mut namespaces = distinct.iter().cloned().collect::<Vec<String>>();
     namespaces.push("use kube::api::Object;".to_string());
     namespaces.push("use crate::linters::LintSpec;".to_string());
+    namespaces.push("use crate::error::KorrecteError;".to_string());
     namespaces.join("\n")
 }
 
@@ -262,20 +274,49 @@ fn build_lint_trait(specs: &[OpenapiResource]) -> String {
 
 fn build_enum(specs: &[OpenapiResource]) -> String {
     let mut variants = String::new();
+    let mut match_arms = Vec::new();
 
     for s in specs {
         let ty = format!("Object<{}, {}>", s.spec(), s.status());
         variants.push_str(&format!("\t{}({}), \n", s.variant(), ty));
+        let parts = s.parts();
+
+        let match_arm_str = format!(r##"
+            ("{}", "{}", "{}") => {{
+				let object = serde_yaml::from_str(yaml)
+					.map_err(|_| KorrecteError::FailedToLoadYamlFile)?;
+
+				Ok(KubeObjectType::{}(object))
+			}}"##, parts.0, parts.2, parts.1, s.variant()
+        );
+
+        match_arms.push(match_arm_str);
     }
 
-
     format!("
-    #[allow(unused)]
-    pub enum KubeObjectType {{
+#[allow(unused)]
+pub enum KubeObjectType {{
 {}
     #[doc(hidden)]
     __Nonexhaustive,
-}}", variants)
+}}
+
+impl KubeObjectType {{
+	pub fn from_yaml(yaml: &str, api_version: &str, kind: &str) -> Result<KubeObjectType, KorrecteError> {{
+		let (ty, version) = if api_version.contains(\"/\") {{
+			let mut parts = api_version.split(\"/\");
+			(parts.next().unwrap(), parts.next().unwrap())
+		}} else {{
+			(\"core\", api_version)
+		}};
+
+		match (ty, version, kind) {{
+			{}
+			_ => Err(KorrecteError::YamlDecodeError {{ty: ty.into(), version: version.into(), kind: kind.into()}}),
+		}}
+	}}
+}}
+", variants, match_arms.join("\n"))
 }
 
 fn write_to(content: &str, path: &str) {

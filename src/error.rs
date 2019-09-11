@@ -6,6 +6,11 @@ pub enum KorrecteError {
     KubeConfig(::kube::Error),
     Generic(String),
     FailedToLoadYamlFile,
+    YamlDecodeError {
+        ty: String,
+        version: String,
+        kind: String,
+    },
     UnrecognizedObject,
 }
 

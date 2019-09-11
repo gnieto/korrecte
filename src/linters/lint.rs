@@ -1,9 +1,10 @@
-use k8s_openapi::api::policy;
 use k8s_openapi::api::autoscaling;
 use k8s_openapi::api::apps;
+use k8s_openapi::api::policy;
 use k8s_openapi::api::core;
 use kube::api::Object;
 use crate::linters::LintSpec;
+use crate::error::KorrecteError;
 
 pub trait Lint {
 	fn v1_node(&self, _node: &Object<core::v1::NodeSpec, core::v1::NodeStatus>) -> Vec<crate::reporting::Finding> { Vec::new() }
@@ -17,8 +18,8 @@ pub trait Lint {
 }
 
 
-    #[allow(unused)]
-    pub enum KubeObjectType {
+#[allow(unused)]
+pub enum KubeObjectType {
 	V1Node(Object<core::v1::NodeSpec, core::v1::NodeStatus>), 
 	V1Pod(Object<core::v1::PodSpec, core::v1::PodStatus>), 
 	V1Service(Object<core::v1::ServiceSpec, core::v1::ServiceStatus>), 
@@ -28,4 +29,61 @@ pub trait Lint {
 
     #[doc(hidden)]
     __Nonexhaustive,
+}
+
+impl KubeObjectType {
+	pub fn from_yaml(yaml: &str, api_version: &str, kind: &str) -> Result<KubeObjectType, KorrecteError> {
+		let (ty, version) = if api_version.contains("/") {
+			let mut parts = api_version.split("/");
+			(parts.next().unwrap(), parts.next().unwrap())
+		} else {
+			("core", api_version)
+		};
+
+		match (ty, version, kind) {
+			
+            ("core", "v1", "Node") => {
+				let object = serde_yaml::from_str(yaml)
+					.map_err(|_| KorrecteError::FailedToLoadYamlFile)?;
+
+				Ok(KubeObjectType::V1Node(object))
+			}
+
+            ("core", "v1", "Pod") => {
+				let object = serde_yaml::from_str(yaml)
+					.map_err(|_| KorrecteError::FailedToLoadYamlFile)?;
+
+				Ok(KubeObjectType::V1Pod(object))
+			}
+
+            ("core", "v1", "Service") => {
+				let object = serde_yaml::from_str(yaml)
+					.map_err(|_| KorrecteError::FailedToLoadYamlFile)?;
+
+				Ok(KubeObjectType::V1Service(object))
+			}
+
+            ("apps", "v1", "Deployment") => {
+				let object = serde_yaml::from_str(yaml)
+					.map_err(|_| KorrecteError::FailedToLoadYamlFile)?;
+
+				Ok(KubeObjectType::V1Deployment(object))
+			}
+
+            ("policy", "v1beta1", "PodDisruptionBudget") => {
+				let object = serde_yaml::from_str(yaml)
+					.map_err(|_| KorrecteError::FailedToLoadYamlFile)?;
+
+				Ok(KubeObjectType::V1beta1PodDisruptionBudget(object))
+			}
+
+            ("autoscaling", "v1", "HorizontalPodAutoscaler") => {
+				let object = serde_yaml::from_str(yaml)
+					.map_err(|_| KorrecteError::FailedToLoadYamlFile)?;
+
+				Ok(KubeObjectType::V1HorizontalPodAutoscaler(object))
+			}
+			_ => Err(KorrecteError::YamlDecodeError {ty: ty.into(), version: version.into(), kind: kind.into()}),
+		}
+	}
 }

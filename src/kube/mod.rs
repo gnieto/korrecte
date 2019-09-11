@@ -2,7 +2,7 @@ use kube::api::ObjectMeta;
 use crate::linters::KubeObjectType;
 
 pub mod api;
-// pub mod file;
+pub mod file;
 
 #[allow(unused)]
 pub struct Identifier {

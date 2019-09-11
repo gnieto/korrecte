@@ -1,15 +1,8 @@
 use std::path::Path;
-use crate::kube::{ObjectRepository, KubeObjectType};
-use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
-use k8s_openapi::api::core::v1::{ServiceSpec, ServiceStatus};
-use k8s_openapi::api::apps::v1::{DeploymentSpec, DeploymentStatus};
-use k8s_openapi::api::autoscaling::v1::{HorizontalPodAutoscalerSpec, HorizontalPodAutoscalerStatus};
-use k8s_openapi::api::policy::v1beta1::{PodDisruptionBudgetSpec, PodDisruptionBudgetStatus};
-use kube::api::Object;
+use crate::kube::{ObjectRepository, KubeObjectType, Identifier};
 use crate::kube::file::KubeObjectLoader;
 use crate::error::KorrecteError;
 
-#[derive(Clone)]
 pub struct FileObjectRepository {
     objects: Vec<KubeObjectType>,
 }
@@ -35,14 +28,29 @@ impl FileObjectRepository {
         };
 
         let properly_parsed_objects: Vec<KubeObjectType> = objects
-            .iter()
-            .filter_map(|object| object.as_ref().ok().cloned())
+            .into_iter()
+            .filter_map(|object| {
+                if object.is_err() {
+                    println!("Could not decode some of the objects on file: {} {:?}", path.display(), object.err().unwrap());
+                    return None;
+                }
+
+                object.ok()
+            })
             .collect();
 
         Ok(FileObjectRepository {
             objects: properly_parsed_objects,
         })
     }
+}
 
+impl ObjectRepository for FileObjectRepository {
+    fn all(&self) -> &Vec<KubeObjectType> {
+        &self.objects
+    }
 
+    fn find(&self, _id: &Identifier) -> Option<&KubeObjectType> {
+        unimplemented!()
+    }
 }
