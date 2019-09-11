@@ -171,7 +171,6 @@ use kube::client::APIClient;
 use kube::Result;
 {}
 use serde::de::DeserializeOwned;
-use super::Identifier;
 use crate::linters::KubeObjectType;
 use crate::kube::ObjectRepository;
 
@@ -226,10 +225,6 @@ impl ObjectRepository for FrozenObjectRepository {{
     fn all(&self) -> &Vec<KubeObjectType> {{
         &self.objects
     }}
-
-    fn find(&self, _id: &Identifier) -> Option<&KubeObjectType> {{
-        unimplemented!()
-    }}
 }}
 "#
     , namespaces, fields.join("\n"), inits.join("\n"), caches.join("\n"))
@@ -252,6 +247,7 @@ fn build_imports(specs: &[OpenapiResource]) -> String {
 
 fn build_lint_trait(specs: &[OpenapiResource]) -> String {
     let mut spec_str = String::new();
+    let mut match_arm = Vec::new();
 
     for s in specs {
         let struct_path = format!("Object<{}, {}>", s.spec(), s.status());
@@ -263,13 +259,22 @@ fn build_lint_trait(specs: &[OpenapiResource]) -> String {
                      struct_path
             )
         );
+
+        match_arm.push(format!("\t\t\t&KubeObjectType::{}(ref o) => self.{}(o),", s.variant(), s.lint_name()));
     }
 
 
     format!("pub trait Lint {{
 {}
+    fn object(&self, object: &KubeObjectType) -> Vec<crate::reporting::Finding> {{
+        match object {{
+{}
+        _ => Vec::new(),
+        }}
+    }}
+
     fn spec(&self) -> LintSpec;
-}}", spec_str)
+}}", spec_str, match_arm.join("\n"))
 }
 
 fn build_enum(specs: &[OpenapiResource]) -> String {

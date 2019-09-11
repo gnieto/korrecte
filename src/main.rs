@@ -4,8 +4,8 @@ mod reporting;
 mod view;
 mod kube;
 mod error;
-// #[cfg(test)]
-// mod tests;
+#[cfg(test)]
+mod tests;
 
 use crate::linters::LintCollection;
 use toml;

@@ -6,7 +6,7 @@ use k8s_openapi::api::autoscaling::v1::{HorizontalPodAutoscalerSpec, HorizontalP
 use k8s_openapi::api::policy::v1beta1::{PodDisruptionBudgetSpec, PodDisruptionBudgetStatus};
 use k8s_openapi::apimachinery::pkg::util::intstr::IntOrString;
 use crate::reporting::Finding;
-use crate::kube::{ObjectRepository, Identifier};
+use crate::kube::ObjectRepository;
 
 /// **What it does:** Checks that pod controllers associated to a pod disruption budget has at least one more replica
 /// than PDB min_unavailable
@@ -83,10 +83,9 @@ impl<'a> PdbMinReplicas<'a> {
             })
             .filter(|hpa| {
                 if &hpa.spec.scale_target_ref.kind == "Deployment" {
-                    let id = Identifier::from(hpa.spec.scale_target_ref.name.clone());
-
                     // Check if there's any target deployment which is targeted by the PDB
-                    self.object_repository.find(&id)
+                    self.object_repository
+                        .all()
                         .iter()
                         .filter_map(|object| {
                             match object {

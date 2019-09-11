@@ -3,11 +3,10 @@ use kube::api::{Object, Reflector, KubeObject, Api};
 use kube::config::Configuration;
 use kube::client::APIClient;
 use kube::Result;
-use k8s_openapi::api::apps;
-use k8s_openapi::api::core;
 use k8s_openapi::api::autoscaling;
+use k8s_openapi::api::core;
+use k8s_openapi::api::apps;
 use serde::de::DeserializeOwned;
-use super::Identifier;
 use crate::linters::KubeObjectType;
 use crate::kube::ObjectRepository;
 
@@ -108,9 +107,5 @@ impl From<ApiObjectRepository> for FrozenObjectRepository {
 impl ObjectRepository for FrozenObjectRepository {
     fn all(&self) -> &Vec<KubeObjectType> {
         &self.objects
-    }
-
-    fn find(&self, _id: &Identifier) -> Option<&KubeObjectType> {
-        unimplemented!()
     }
 }

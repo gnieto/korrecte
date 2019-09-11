@@ -1,5 +1,5 @@
 use std::path::Path;
-use crate::kube::{ObjectRepository, KubeObjectType, Identifier};
+use crate::kube::{ObjectRepository, KubeObjectType};
 use crate::kube::file::KubeObjectLoader;
 use crate::error::KorrecteError;
 
@@ -48,9 +48,5 @@ impl FileObjectRepository {
 impl ObjectRepository for FileObjectRepository {
     fn all(&self) -> &Vec<KubeObjectType> {
         &self.objects
-    }
-
-    fn find(&self, _id: &Identifier) -> Option<&KubeObjectType> {
-        unimplemented!()
     }
 }

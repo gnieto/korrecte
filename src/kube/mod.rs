@@ -38,5 +38,4 @@ impl Identifier {
 
 pub trait ObjectRepository {
     fn all(&self) -> &Vec<KubeObjectType>;
-    fn find(&self, id: &Identifier) -> Option<&KubeObjectType>;
 }
