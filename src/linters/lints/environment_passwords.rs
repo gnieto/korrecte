@@ -1,9 +1,9 @@
-use crate::linters::{Lint, LintSpec, Group};
+use crate::linters::{Group, Lint, LintSpec};
 
-use kube::api::Object;
-use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
 use crate::reporting::Finding;
 use k8s_openapi::api::core::v1::{Container, EnvVar};
+use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
+use kube::api::Object;
 use serde::Deserialize;
 
 /// **What it does:** Finds passwords or keys on object manifests.
@@ -24,14 +24,15 @@ impl Lint for EnvironmentPasswords {
     fn v1_pod(&self, pod: &Object<PodSpec, PodStatus>) -> Vec<Finding> {
         let mut findings = Vec::new();
 
-        let env_vars_with_secrets: Vec<&EnvVar> = pod.spec.containers
+        let env_vars_with_secrets: Vec<&EnvVar> = pod
+            .spec
+            .containers
             .iter()
             .map(|c: &Container| c.env.as_ref())
             .flatten()
             .flatten()
             .filter(|envvar| self.is_hardcoded_environment_variable(envvar))
             .collect();
-
 
         for environment_var in env_vars_with_secrets {
             let finding = Finding::new(self.spec().clone(), pod.metadata.clone())
@@ -51,22 +52,17 @@ impl Lint for EnvironmentPasswords {
     }
 }
 
-
 impl EnvironmentPasswords {
     pub fn new(config: Config) -> Self {
-        EnvironmentPasswords {
-            config,
-        }
+        EnvironmentPasswords { config }
     }
 
     fn is_hardcoded_environment_variable(&self, env_var: &EnvVar) -> bool {
         let name = env_var.name.to_uppercase();
-        let has_hardcoded_env_var = self.config.suspicious_keys
-            .iter()
-            .any(|suspicious_key| {
-                let key = suspicious_key.to_uppercase();
-                name.contains(&key)
-            });
+        let has_hardcoded_env_var = self.config.suspicious_keys.iter().any(|suspicious_key| {
+            let key = suspicious_key.to_uppercase();
+            name.contains(&key)
+        });
         let is_injected = env_var.value.is_none() && env_var.value_from.is_some();
 
         // If it matches with any of the suspicious substrings and is not injected
@@ -83,9 +79,7 @@ pub(crate) struct Config {
 impl Config {
     #[allow(unused)]
     pub fn new(suspicious_keys: Vec<String>) -> Self {
-        Config {
-            suspicious_keys,
-        }
+        Config { suspicious_keys }
     }
 }
 
@@ -107,11 +101,11 @@ fn default_environment_vars() -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
-    use crate::linters::lints::environment_passwords::{EnvironmentPasswords, Config};
+    use crate::linters::lints::environment_passwords::{Config, EnvironmentPasswords};
     use crate::linters::Lint;
-    use kube::api::{Object};
     use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
+    use kube::api::Object;
+    use serde_json::json;
     use serde_json::Value;
 
     #[test]
@@ -131,9 +125,15 @@ mod tests {
 
         let findings = linter.v1_pod(&pod);
         assert_eq!(1, findings.len());
-        let finding= &findings[0];
+        let finding = &findings[0];
         assert_eq!(finding.spec(), &linter.spec());
-        assert_eq!("ADMIN_PASSWORD", finding.lint_metadata().get("environment_var".into()).unwrap());
+        assert_eq!(
+            "ADMIN_PASSWORD",
+            finding
+                .lint_metadata()
+                .get("environment_var".into())
+                .unwrap()
+        );
     }
 
     #[test]
@@ -171,9 +171,15 @@ mod tests {
 
         let lints = linter.v1_pod(&pod);
         assert_eq!(1, lints.len());
-        let finding= &lints[0];
+        let finding = &lints[0];
         assert_eq!(finding.spec(), &linter.spec());
-        assert_eq!("ADMIN_PAssWORD", finding.lint_metadata().get("environment_var".into()).unwrap());
+        assert_eq!(
+            "ADMIN_PAssWORD",
+            finding
+                .lint_metadata()
+                .get("environment_var".into())
+                .unwrap()
+        );
     }
 
     #[test]
@@ -200,13 +206,25 @@ mod tests {
         let lints = linter.v1_pod(&pod);
 
         assert_eq!(2, lints.len());
-        let finding= &lints[0];
+        let finding = &lints[0];
         assert_eq!(finding.spec(), &linter.spec());
-        assert_eq!("SUSPICIOUS_KEY", finding.lint_metadata().get("environment_var".into()).unwrap());
+        assert_eq!(
+            "SUSPICIOUS_KEY",
+            finding
+                .lint_metadata()
+                .get("environment_var".into())
+                .unwrap()
+        );
 
-        let finding= &lints[1];
+        let finding = &lints[1];
         assert_eq!(finding.spec(), &linter.spec());
-        assert_eq!("ENV_ANOTHER_KEY", finding.lint_metadata().get("environment_var".into()).unwrap());
+        assert_eq!(
+            "ENV_ANOTHER_KEY",
+            finding
+                .lint_metadata()
+                .get("environment_var".into())
+                .unwrap()
+        );
     }
 
     fn get_pod_with_environment_vars(json_value: Value) -> Object<PodSpec, PodStatus> {

@@ -1,7 +1,7 @@
-use std::path::Path;
-use crate::kube::{ObjectRepository, KubeObjectType};
-use crate::kube::file::KubeObjectLoader;
 use crate::error::KorrecteError;
+use crate::kube::file::KubeObjectLoader;
+use crate::kube::{KubeObjectType, ObjectRepository};
+use std::path::Path;
 
 pub struct FileObjectRepository {
     objects: Vec<KubeObjectType>,
@@ -10,7 +10,8 @@ pub struct FileObjectRepository {
 impl FileObjectRepository {
     pub fn new(path: &Path) -> Result<FileObjectRepository, KorrecteError> {
         let objects = if path.is_dir() {
-            let objects: Vec<Result<KubeObjectType, KorrecteError>> = path.read_dir()?
+            let objects: Vec<Result<KubeObjectType, KorrecteError>> = path
+                .read_dir()?
                 .into_iter()
                 .map(|e| e.ok())
                 .filter(|entry| entry.is_some())
@@ -31,7 +32,11 @@ impl FileObjectRepository {
             .into_iter()
             .filter_map(|object| {
                 if object.is_err() {
-                    println!("Could not decode some of the objects on file: {} {:?}", path.display(), object.err().unwrap());
+                    println!(
+                        "Could not decode some of the objects on file: {} {:?}",
+                        path.display(),
+                        object.err().unwrap()
+                    );
                     return None;
                 }
 

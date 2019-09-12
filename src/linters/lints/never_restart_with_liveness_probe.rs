@@ -1,8 +1,8 @@
-use crate::linters::{Lint, LintSpec, Group};
+use crate::linters::{Group, Lint, LintSpec};
 
-use kube::api::Object;
-use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
 use crate::reporting::Finding;
+use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
+use kube::api::Object;
 
 /// **What it does:** Finds pods which have a `Never` restart policy and have liveness probe set
 ///
@@ -19,14 +19,18 @@ pub(crate) struct NeverRestartWithLivenessProbe;
 impl Lint for NeverRestartWithLivenessProbe {
     fn v1_pod(&self, pod: &Object<PodSpec, PodStatus>) -> Vec<Finding> {
         let mut findings = Vec::new();
-        let restart_policy: String = pod.spec.restart_policy
+        let restart_policy: String = pod
+            .spec
+            .restart_policy
             .clone()
             .unwrap_or_else(|| "Always".to_string());
         if restart_policy.to_ascii_lowercase() != "never" {
             return findings;
         }
 
-        let has_any_liveness_probe = pod.spec.containers
+        let has_any_liveness_probe = pod
+            .spec
+            .containers
             .iter()
             .any(|c| c.liveness_probe.is_some());
 

@@ -1,31 +1,31 @@
-mod linters;
 mod config;
-mod reporting;
-mod view;
-mod kube;
 mod error;
+mod kube;
+mod linters;
+mod reporting;
 #[cfg(test)]
 mod tests;
+mod view;
 
-use crate::linters::LintCollection;
-use toml;
-use std::fs::File;
-use std::io::prelude::*;
 use crate::config::Config;
-use crate::reporting::Reporter;
-use crate::view::cli::Cli;
-use crate::view::View;
-use crate::linters::evaluator::OneShotEvaluator;
-use ::kube::config as kube_config;
-use clap::{App, ArgMatches};
-use clap::load_yaml;
-use crate::kube::ObjectRepository;
 use crate::error::KorrecteError;
 use crate::kube::api::{ApiObjectRepository, FrozenObjectRepository};
 use crate::kube::file::FileObjectRepository;
+use crate::kube::ObjectRepository;
+use crate::linters::evaluator::OneShotEvaluator;
+use crate::linters::LintCollection;
+use crate::reporting::Reporter;
+use crate::view::cli::Cli;
+use crate::view::View;
+use ::kube::config as kube_config;
+use clap::load_yaml;
+use clap::{App, ArgMatches};
+use std::fs::File;
+use std::io::prelude::*;
 use std::path::Path;
+use toml;
 
-fn main() -> Result<(), KorrecteError>{
+fn main() -> Result<(), KorrecteError> {
     let yaml = load_yaml!("cli.yaml");
     let matches = App::from_yaml(yaml).get_matches();
 
@@ -46,17 +46,26 @@ fn main() -> Result<(), KorrecteError>{
     Ok(())
 }
 
-fn build_object_repository(matches: &ArgMatches) -> Result<Box<dyn ObjectRepository>, KorrecteError> {
+fn build_object_repository(
+    matches: &ArgMatches,
+) -> Result<Box<dyn ObjectRepository>, KorrecteError> {
     match matches.value_of("source") {
         Some("api") | None => {
-            let config = kube_config::load_kube_config().map_err( |_| KorrecteError::Generic("Could not load kube config".into()))?;
-            Ok(Box::new(FrozenObjectRepository::from(ApiObjectRepository::new(config)?)))
-        },
+            let config = kube_config::load_kube_config()
+                .map_err(|_| KorrecteError::Generic("Could not load kube config".into()))?;
+            Ok(Box::new(FrozenObjectRepository::from(
+                ApiObjectRepository::new(config)?,
+            )))
+        }
         Some("file") => {
-            let path = matches.value_of("path").ok_or(KorrecteError::Generic("Missing file path".into()))?;
+            let path = matches
+                .value_of("path")
+                .ok_or(KorrecteError::Generic("Missing file path".into()))?;
             Ok(Box::new(FileObjectRepository::new(Path::new(path))?))
-        },
-        _ => Err(KorrecteError::Generic("Could not build an object repository".into())),
+        }
+        _ => Err(KorrecteError::Generic(
+            "Could not build an object repository".into(),
+        )),
     }
 }
 

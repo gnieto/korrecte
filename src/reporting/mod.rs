@@ -1,9 +1,9 @@
 use crate::linters::LintSpec;
-use std::collections::HashMap;
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::ops::Deref;
 use kube::api::ObjectMeta;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::ops::Deref;
+use std::rc::Rc;
 
 pub trait Reporter {
     fn report(&self, finding: Finding);
@@ -28,7 +28,8 @@ impl Finding {
     }
 
     pub fn add_metadata<K: ToString, V: ToString>(mut self, key: K, value: V) -> Self {
-        self.lint_metadata.insert(key.to_string(), value.to_string());
+        self.lint_metadata
+            .insert(key.to_string(), value.to_string());
         self
     }
 

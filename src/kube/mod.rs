@@ -1,5 +1,5 @@
-use kube::api::ObjectMeta;
 use crate::linters::KubeObjectType;
+use kube::api::ObjectMeta;
 
 pub mod api;
 pub mod file;
@@ -31,8 +31,7 @@ impl From<ObjectMeta> for Identifier {
 #[allow(unused)]
 impl Identifier {
     pub fn matches_with(&self, meta: &ObjectMeta) -> bool {
-        meta.name == self.name &&
-            meta.namespace == self.namespace
+        meta.name == self.name && meta.namespace == self.namespace
     }
 }
 

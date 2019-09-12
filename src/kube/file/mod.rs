@@ -1,5 +1,5 @@
-mod repository;
 mod loader;
+mod repository;
 
-pub use repository::FileObjectRepository;
 pub(crate) use loader::KubeObjectLoader;
+pub use repository::FileObjectRepository;

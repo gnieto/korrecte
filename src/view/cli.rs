@@ -11,7 +11,12 @@ impl View for Cli {
                 "{} on {} [{}]. Metadata: {:?}",
                 finding.spec().name.bold(),
                 finding.object_metadata().name.green(),
-                finding.object_metadata().namespace.as_ref().unwrap_or(&"default".to_string()).blue(),
+                finding
+                    .object_metadata()
+                    .namespace
+                    .as_ref()
+                    .unwrap_or(&"default".to_string())
+                    .blue(),
                 finding.lint_metadata(),
             )
         }

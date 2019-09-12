@@ -1,6 +1,6 @@
-use serde::Deserialize;
-use crate::linters::lints::required_labels::Config as RequiredLabelsConfig;
 use crate::linters::lints::environment_passwords::Config as EnvironmentPasswordsConfig;
+use crate::linters::lints::required_labels::Config as RequiredLabelsConfig;
+use serde::Deserialize;
 
 #[derive(Default, Deserialize, Debug)]
 pub struct Config {
