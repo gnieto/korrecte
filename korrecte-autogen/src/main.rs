@@ -154,7 +154,7 @@ fn build_kube_client(specs: &[OpenapiResource]) -> String {
                     .unwrap()
                     .iter()
                     .map(|o| {{
-                        KubeObjectType::{}(o.clone())
+                        KubeObjectType::{}(Box::new(o.clone()))
                     }})
         );", s.clean_name(), s.variant());
         caches.push(cache);
@@ -260,7 +260,7 @@ fn build_lint_trait(specs: &[OpenapiResource]) -> String {
             )
         );
 
-        match_arm.push(format!("\t\t\t&KubeObjectType::{}(ref o) => self.{}(o),", s.variant(), s.lint_name()));
+        match_arm.push(format!("\t\t\tKubeObjectType::{}(ref o) => self.{}(o),", s.variant(), s.lint_name()));
     }
 
 
@@ -283,7 +283,7 @@ fn build_enum(specs: &[OpenapiResource]) -> String {
 
     for s in specs {
         let ty = format!("Object<{}, {}>", s.spec(), s.status());
-        variants.push_str(&format!("\t{}({}), \n", s.variant(), ty));
+        variants.push_str(&format!("\t{}(Box<{}>), \n", s.variant(), ty));
         let parts = s.parts();
 
         let match_arm_str = format!(r##"
@@ -308,8 +308,8 @@ pub enum KubeObjectType {{
 
 impl KubeObjectType {{
 	pub fn from_yaml(yaml: &str, api_version: &str, kind: &str) -> Result<KubeObjectType, KorrecteError> {{
-		let (ty, version) = if api_version.contains(\"/\") {{
-			let mut parts = api_version.split(\"/\");
+		let (ty, version) = if api_version.contains('/') {{
+			let mut parts = api_version.split('/'N);
 			(parts.next().unwrap(), parts.next().unwrap())
 		}} else {{
 			(\"core\", api_version)

@@ -12,7 +12,6 @@ impl FileObjectRepository {
         let objects = if path.is_dir() {
             let objects: Vec<Result<KubeObjectType, KorrecteError>> = path
                 .read_dir()?
-                .into_iter()
                 .map(|e| e.ok())
                 .filter(|entry| entry.is_some())
                 .map(|maybe_entry| maybe_entry.unwrap())

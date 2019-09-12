@@ -16,11 +16,11 @@ use std::collections::BTreeMap;
 ///
 /// **References**
 pub(crate) struct ServiceWithoutMatchingLabels<'a> {
-    object_repository: &'a Box<dyn ObjectRepository>,
+    object_repository: &'a dyn ObjectRepository,
 }
 
 impl<'a> ServiceWithoutMatchingLabels<'a> {
-    pub fn new(object_repository: &'a Box<dyn ObjectRepository>) -> Self {
+    pub fn new(object_repository: &'a dyn ObjectRepository) -> Self {
         ServiceWithoutMatchingLabels { object_repository }
     }
 }

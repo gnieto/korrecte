@@ -52,14 +52,14 @@ pub trait Lint {
 
     fn object(&self, object: &KubeObjectType) -> Vec<crate::reporting::Finding> {
         match object {
-            &KubeObjectType::V1Node(ref o) => self.v1_node(o),
-            &KubeObjectType::V1Pod(ref o) => self.v1_pod(o),
-            &KubeObjectType::V1Service(ref o) => self.v1_service(o),
-            &KubeObjectType::V1Deployment(ref o) => self.v1_deployment(o),
-            &KubeObjectType::V1beta1PodDisruptionBudget(ref o) => {
+            KubeObjectType::V1Node(ref o) => self.v1_node(o),
+            KubeObjectType::V1Pod(ref o) => self.v1_pod(o),
+            KubeObjectType::V1Service(ref o) => self.v1_service(o),
+            KubeObjectType::V1Deployment(ref o) => self.v1_deployment(o),
+            KubeObjectType::V1beta1PodDisruptionBudget(ref o) => {
                 self.v1beta1_pod_disruption_budget(o)
             }
-            &KubeObjectType::V1HorizontalPodAutoscaler(ref o) => {
+            KubeObjectType::V1HorizontalPodAutoscaler(ref o) => {
                 self.v1_horizontal_pod_autoscaler(o)
             }
             _ => Vec::new(),
@@ -71,20 +71,24 @@ pub trait Lint {
 
 #[allow(unused)]
 pub enum KubeObjectType {
-    V1Node(Object<core::v1::NodeSpec, core::v1::NodeStatus>),
-    V1Pod(Object<core::v1::PodSpec, core::v1::PodStatus>),
-    V1Service(Object<core::v1::ServiceSpec, core::v1::ServiceStatus>),
-    V1Deployment(Object<apps::v1::DeploymentSpec, apps::v1::DeploymentStatus>),
+    V1Node(Box<Object<core::v1::NodeSpec, core::v1::NodeStatus>>),
+    V1Pod(Box<Object<core::v1::PodSpec, core::v1::PodStatus>>),
+    V1Service(Box<Object<core::v1::ServiceSpec, core::v1::ServiceStatus>>),
+    V1Deployment(Box<Object<apps::v1::DeploymentSpec, apps::v1::DeploymentStatus>>),
     V1beta1PodDisruptionBudget(
-        Object<
-            policy::v1beta1::PodDisruptionBudgetSpec,
-            policy::v1beta1::PodDisruptionBudgetStatus,
+        Box<
+            Object<
+                policy::v1beta1::PodDisruptionBudgetSpec,
+                policy::v1beta1::PodDisruptionBudgetStatus,
+            >,
         >,
     ),
     V1HorizontalPodAutoscaler(
-        Object<
-            autoscaling::v1::HorizontalPodAutoscalerSpec,
-            autoscaling::v1::HorizontalPodAutoscalerStatus,
+        Box<
+            Object<
+                autoscaling::v1::HorizontalPodAutoscalerSpec,
+                autoscaling::v1::HorizontalPodAutoscalerStatus,
+            >,
         >,
     ),
 
@@ -98,8 +102,8 @@ impl KubeObjectType {
         api_version: &str,
         kind: &str,
     ) -> Result<KubeObjectType, KorrecteError> {
-        let (ty, version) = if api_version.contains("/") {
-            let mut parts = api_version.split("/");
+        let (ty, version) = if api_version.contains('/') {
+            let mut parts = api_version.split('/');
             (parts.next().unwrap(), parts.next().unwrap())
         } else {
             ("core", api_version)

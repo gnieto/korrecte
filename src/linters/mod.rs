@@ -25,14 +25,14 @@ pub type LintList<'a> = Vec<Box<dyn Lint + 'a>>;
 pub struct LintCollection;
 
 impl LintCollection {
-    pub fn all<'a>(cfg: Config, object_repository: &'a Box<dyn ObjectRepository>) -> LintList<'a> {
+    pub fn all(cfg: Config, object_repository: &dyn ObjectRepository) -> LintList {
         let required =
             linters::lints::required_labels::RequiredLabels::new(cfg.required_labels.clone());
         let overlapping = linters::lints::overlapping_probes::OverlappingProbes::default();
         let never = linters::lints::never_restart_with_liveness_probe::NeverRestartWithLivenessProbe::default();
         let service_labels =
             linters::lints::service_without_matching_labels::ServiceWithoutMatchingLabels::new(
-                &object_repository,
+                object_repository,
             );
         let passwords = linters::lints::environment_passwords::EnvironmentPasswords::new(
             cfg.environment_passwords.clone(),

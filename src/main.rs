@@ -20,6 +20,7 @@ use crate::view::View;
 use ::kube::config as kube_config;
 use clap::load_yaml;
 use clap::{App, ArgMatches};
+use std::borrow::Borrow;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -38,8 +39,8 @@ fn main() -> Result<(), KorrecteError> {
     let reporter = reporting::SingleThreadedReporter::default();
     let object_repository = build_object_repository(&matches)?;
 
-    let list = LintCollection::all(cfg, &object_repository);
-    OneShotEvaluator::evaluate(&reporter, list, &object_repository);
+    let list = LintCollection::all(cfg, &*object_repository);
+    OneShotEvaluator::evaluate(&reporter, list, object_repository.borrow());
 
     let cli = Cli {};
     cli.render(&reporter.findings());
@@ -60,7 +61,7 @@ fn build_object_repository(
         Some("file") => {
             let path = matches
                 .value_of("path")
-                .ok_or(KorrecteError::Generic("Missing file path".into()))?;
+                .ok_or_else(|| KorrecteError::Generic("Missing file path".into()))?;
             Ok(Box::new(FileObjectRepository::new(Path::new(path))?))
         }
         _ => Err(KorrecteError::Generic(

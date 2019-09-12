@@ -8,7 +8,7 @@ impl OneShotEvaluator {
     pub fn evaluate(
         reporter: &dyn Reporter,
         list: LintList,
-        object_repository: &Box<dyn ObjectRepository>,
+        object_repository: &dyn ObjectRepository,
     ) {
         for lint in list.iter() {
             for object in object_repository.all() {

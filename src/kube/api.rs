@@ -70,35 +70,35 @@ impl From<ApiObjectRepository> for FrozenObjectRepository {
                 .read()
                 .unwrap()
                 .iter()
-                .map(|o| KubeObjectType::V1Node(o.clone())),
+                .map(|o| KubeObjectType::V1Node(Box::new(o.clone()))),
         );
         objects.extend(
             api.pod
                 .read()
                 .unwrap()
                 .iter()
-                .map(|o| KubeObjectType::V1Pod(o.clone())),
+                .map(|o| KubeObjectType::V1Pod(Box::new(o.clone()))),
         );
         objects.extend(
             api.service
                 .read()
                 .unwrap()
                 .iter()
-                .map(|o| KubeObjectType::V1Service(o.clone())),
+                .map(|o| KubeObjectType::V1Service(Box::new(o.clone()))),
         );
         objects.extend(
             api.deployment
                 .read()
                 .unwrap()
                 .iter()
-                .map(|o| KubeObjectType::V1Deployment(o.clone())),
+                .map(|o| KubeObjectType::V1Deployment(Box::new(o.clone()))),
         );
         objects.extend(
             api.horizontal_pod_autoscaler
                 .read()
                 .unwrap()
                 .iter()
-                .map(|o| KubeObjectType::V1HorizontalPodAutoscaler(o.clone())),
+                .map(|o| KubeObjectType::V1HorizontalPodAutoscaler(Box::new(o.clone()))),
         );
 
         FrozenObjectRepository { objects }
