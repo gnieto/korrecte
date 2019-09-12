@@ -10,7 +10,6 @@ spec:
     - image: gcr.io/hello-minikube-zero-install/hello-node
       imagePullPolicy: Always
       name: hello-node
-      resources: {}
       readinessProbe:
         tcpSocket:
           port: 8080

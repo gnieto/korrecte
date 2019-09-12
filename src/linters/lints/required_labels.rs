@@ -26,13 +26,6 @@ impl RequiredLabels {
 }
 
 impl Lint for RequiredLabels {
-    fn spec(&self) -> LintSpec {
-        LintSpec {
-            group: Group::Audit,
-            name: "required_labels".to_string(),
-        }
-    }
-
     fn v1_pod(&self, pod: &Object<PodSpec, PodStatus>) -> Vec<Finding> {
         let mut findings = Vec::new();
 
@@ -60,6 +53,13 @@ impl Lint for RequiredLabels {
         }
 
         findings
+    }
+
+    fn spec(&self) -> LintSpec {
+        LintSpec {
+            group: Group::Audit,
+            name: "required_labels".to_string(),
+        }
     }
 }
 
