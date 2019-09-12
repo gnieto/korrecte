@@ -14,7 +14,10 @@ pub struct ApiObjectRepository {
     node: Reflector<Object<core::v1::NodeSpec, core::v1::NodeStatus>>,
     pod: Reflector<Object<core::v1::PodSpec, core::v1::PodStatus>>,
     service: Reflector<Object<core::v1::ServiceSpec, core::v1::ServiceStatus>>,
+    daemon_set: Reflector<Object<apps::v1::DaemonSetSpec, apps::v1::DaemonSetStatus>>,
     deployment: Reflector<Object<apps::v1::DeploymentSpec, apps::v1::DeploymentStatus>>,
+    replica_set: Reflector<Object<apps::v1::ReplicaSetSpec, apps::v1::ReplicaSetStatus>>,
+    stateful_set: Reflector<Object<apps::v1::StatefulSetSpec, apps::v1::StatefulSetStatus>>,
     horizontal_pod_autoscaler: Reflector<
         Object<
             autoscaling::v1::HorizontalPodAutoscalerSpec,
@@ -31,7 +34,16 @@ impl ApiObjectRepository {
             node: ApiObjectRepository::initialize_reflector(Api::v1Node(client.clone()))?,
             pod: ApiObjectRepository::initialize_reflector(Api::v1Pod(client.clone()))?,
             service: ApiObjectRepository::initialize_reflector(Api::v1Service(client.clone()))?,
+            daemon_set: ApiObjectRepository::initialize_reflector(Api::v1DaemonSet(
+                client.clone(),
+            ))?,
             deployment: ApiObjectRepository::initialize_reflector(Api::v1Deployment(
+                client.clone(),
+            ))?,
+            replica_set: ApiObjectRepository::initialize_reflector(Api::v1ReplicaSet(
+                client.clone(),
+            ))?,
+            stateful_set: ApiObjectRepository::initialize_reflector(Api::v1StatefulSet(
                 client.clone(),
             ))?,
             horizontal_pod_autoscaler: ApiObjectRepository::initialize_reflector(
@@ -87,11 +99,32 @@ impl From<ApiObjectRepository> for FrozenObjectRepository {
                 .map(|o| KubeObjectType::V1Service(Box::new(o.clone()))),
         );
         objects.extend(
+            api.daemon_set
+                .read()
+                .unwrap()
+                .iter()
+                .map(|o| KubeObjectType::V1DaemonSet(Box::new(o.clone()))),
+        );
+        objects.extend(
             api.deployment
                 .read()
                 .unwrap()
                 .iter()
                 .map(|o| KubeObjectType::V1Deployment(Box::new(o.clone()))),
+        );
+        objects.extend(
+            api.replica_set
+                .read()
+                .unwrap()
+                .iter()
+                .map(|o| KubeObjectType::V1ReplicaSet(Box::new(o.clone()))),
+        );
+        objects.extend(
+            api.stateful_set
+                .read()
+                .unwrap()
+                .iter()
+                .map(|o| KubeObjectType::V1StatefulSet(Box::new(o.clone()))),
         );
         objects.extend(
             api.horizontal_pod_autoscaler

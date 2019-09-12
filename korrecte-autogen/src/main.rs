@@ -11,10 +11,10 @@ fn main() {
 //        "k8s_openapi::api::core::v1::ReplicationControllerSpec",
         OpenapiResource::new("k8s_openapi::api::core::v1::Service", true),
 
-//        "k8s_openapi::api::apps::v1::DaemonSetSpec",
+        OpenapiResource::new("k8s_openapi::api::apps::v1::DaemonSet", true),
         OpenapiResource::new("k8s_openapi::api::apps::v1::Deployment", true),
-//        "k8s_openapi::api::apps::v1::ReplicaSetSpec",
-//        "k8s_openapi::api::apps::v1::StatefulSetSpec",
+        OpenapiResource::new("k8s_openapi::api::apps::v1::ReplicaSet", true),
+        OpenapiResource::new("k8s_openapi::api::apps::v1::StatefulSet", true),
 
         OpenapiResource::new("k8s_openapi::api::policy::v1beta1::PodDisruptionBudget", false),
 
@@ -309,7 +309,7 @@ pub enum KubeObjectType {{
 impl KubeObjectType {{
 	pub fn from_yaml(yaml: &str, api_version: &str, kind: &str) -> Result<KubeObjectType, KorrecteError> {{
 		let (ty, version) = if api_version.contains('/') {{
-			let mut parts = api_version.split('/'N);
+			let mut parts = api_version.split('/');
 			(parts.next().unwrap(), parts.next().unwrap())
 		}} else {{
 			(\"core\", api_version)

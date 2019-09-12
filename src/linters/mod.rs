@@ -38,6 +38,8 @@ impl LintCollection {
             cfg.environment_passwords.clone(),
         );
         let pdb_min = linters::lints::pdb_min_replicas::PdbMinReplicas::new(object_repository);
+        let statefulset_grace_period_zero =
+            linters::lints::statefulset_grace_period_zero::StatefulsetGracePeriodZero::default();
 
         vec![
             Box::new(required),
@@ -46,6 +48,7 @@ impl LintCollection {
             Box::new(service_labels),
             Box::new(passwords),
             Box::new(pdb_min),
+            Box::new(statefulset_grace_period_zero),
         ]
     }
 }
