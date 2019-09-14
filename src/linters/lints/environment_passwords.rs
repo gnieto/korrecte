@@ -1,9 +1,10 @@
-use crate::linters::{Group, Lint, LintSpec};
+use crate::linters::{Group, KubeObjectType, Lint, LintSpec};
 
 use crate::reporting::Finding;
+use crate::visitor::{pod_spec_visit, PodSpecVisitor};
+use k8s_openapi::api::core::v1::PodSpec;
 use k8s_openapi::api::core::v1::{Container, EnvVar};
-use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
-use kube::api::Object;
+use kube::api::ObjectMeta;
 use serde::Deserialize;
 
 /// **What it does:** Finds passwords or keys on object manifests.
@@ -21,11 +22,25 @@ pub(crate) struct EnvironmentPasswords {
 }
 
 impl Lint for EnvironmentPasswords {
-    fn v1_pod(&self, pod: &Object<PodSpec, PodStatus>) -> Vec<Finding> {
-        let mut findings = Vec::new();
+    fn object(&self, object: &KubeObjectType) -> Vec<Finding> {
+        let mut visitor = EnvironmentPasswordsVisitor {
+            findings: Vec::new(),
+            config: &self.config,
+        };
+        pod_spec_visit(&object, &mut visitor);
 
-        let env_vars_with_secrets: Vec<&EnvVar> = pod
-            .spec
+        visitor.findings
+    }
+}
+
+struct EnvironmentPasswordsVisitor<'a> {
+    findings: Vec<Finding>,
+    config: &'a Config,
+}
+
+impl PodSpecVisitor for EnvironmentPasswordsVisitor<'_> {
+    fn visit_pod_spec(&mut self, pod_spec: &PodSpec, meta: &ObjectMeta) {
+        let env_vars_with_secrets: Vec<&EnvVar> = pod_spec
             .containers
             .iter()
             .map(|c: &Container| c.env.as_ref())
@@ -35,21 +50,15 @@ impl Lint for EnvironmentPasswords {
             .collect();
 
         for environment_var in env_vars_with_secrets {
-            let finding = Finding::new(EnvironmentPasswords::spec(), pod.metadata.clone())
+            let finding = Finding::new(EnvironmentPasswords::spec(), meta.clone())
                 .add_metadata("environment_var".to_string(), environment_var.name.clone());
 
-            findings.push(finding);
+            self.findings.push(finding);
         }
-
-        findings
     }
 }
 
-impl EnvironmentPasswords {
-    pub fn new(config: Config) -> Self {
-        EnvironmentPasswords { config }
-    }
-
+impl EnvironmentPasswordsVisitor<'_> {
     fn is_hardcoded_environment_variable(&self, env_var: &EnvVar) -> bool {
         let name = env_var.name.to_uppercase();
         let has_hardcoded_env_var = self.config.suspicious_keys.iter().any(|suspicious_key| {
@@ -60,6 +69,12 @@ impl EnvironmentPasswords {
 
         // If it matches with any of the suspicious substrings and is not injected
         has_hardcoded_env_var && !is_injected
+    }
+}
+
+impl EnvironmentPasswords {
+    pub fn new(config: Config) -> Self {
+        EnvironmentPasswords { config }
     }
 
     fn spec() -> LintSpec {
@@ -102,7 +117,7 @@ fn default_environment_vars() -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use crate::linters::lints::environment_passwords::{Config, EnvironmentPasswords};
-    use crate::linters::Lint;
+    use crate::linters::{KubeObjectType, Lint};
     use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
     use kube::api::Object;
     use serde_json::json;
@@ -123,7 +138,7 @@ mod tests {
         let pod = get_pod_with_environment_vars(envvars);
         let linter = EnvironmentPasswords::new(Config::default());
 
-        let findings = linter.v1_pod(&pod);
+        let findings = linter.object(&KubeObjectType::V1Pod(Box::new(pod)));
         assert_eq!(1, findings.len());
         let finding = &findings[0];
         assert_eq!(finding.spec(), &EnvironmentPasswords::spec());
@@ -169,9 +184,9 @@ mod tests {
 
         let linter = EnvironmentPasswords::new(Config::default());
 
-        let lints = linter.v1_pod(&pod);
-        assert_eq!(1, lints.len());
-        let finding = &lints[0];
+        let findings = linter.object(&KubeObjectType::V1Pod(Box::new(pod)));
+        assert_eq!(1, findings.len());
+        let finding = &findings[0];
         assert_eq!(finding.spec(), &EnvironmentPasswords::spec());
         assert_eq!(
             "ADMIN_PAssWORD",
@@ -203,10 +218,10 @@ mod tests {
         let config = Config::new(vec!["SUSPICIOUS".to_string(), "ANOTHER_KEY".to_string()]);
         let linter = EnvironmentPasswords::new(config);
 
-        let lints = linter.v1_pod(&pod);
+        let findings = linter.object(&KubeObjectType::V1Pod(Box::new(pod)));
 
-        assert_eq!(2, lints.len());
-        let finding = &lints[0];
+        assert_eq!(2, findings.len());
+        let finding = &findings[0];
         assert_eq!(finding.spec(), &EnvironmentPasswords::spec());
         assert_eq!(
             "SUSPICIOUS_KEY",
@@ -216,7 +231,7 @@ mod tests {
                 .unwrap()
         );
 
-        let finding = &lints[1];
+        let finding = &findings[1];
         assert_eq!(finding.spec(), &EnvironmentPasswords::spec());
         assert_eq!(
             "ENV_ANOTHER_KEY",
