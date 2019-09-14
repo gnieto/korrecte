@@ -6,6 +6,7 @@ mod reporting;
 #[cfg(test)]
 mod tests;
 mod view;
+mod visitor;
 
 use crate::config::Config;
 use crate::error::KorrecteError;

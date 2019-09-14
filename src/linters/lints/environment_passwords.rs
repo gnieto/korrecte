@@ -35,20 +35,13 @@ impl Lint for EnvironmentPasswords {
             .collect();
 
         for environment_var in env_vars_with_secrets {
-            let finding = Finding::new(self.spec().clone(), pod.metadata.clone())
+            let finding = Finding::new(EnvironmentPasswords::spec(), pod.metadata.clone())
                 .add_metadata("environment_var".to_string(), environment_var.name.clone());
 
             findings.push(finding);
         }
 
         findings
-    }
-
-    fn spec(&self) -> LintSpec {
-        LintSpec {
-            group: Group::Security,
-            name: "environment_passwords".to_string(),
-        }
     }
 }
 
@@ -67,6 +60,13 @@ impl EnvironmentPasswords {
 
         // If it matches with any of the suspicious substrings and is not injected
         has_hardcoded_env_var && !is_injected
+    }
+
+    fn spec() -> LintSpec {
+        LintSpec {
+            group: Group::Security,
+            name: "environment_passwords".to_string(),
+        }
     }
 }
 
@@ -126,7 +126,7 @@ mod tests {
         let findings = linter.v1_pod(&pod);
         assert_eq!(1, findings.len());
         let finding = &findings[0];
-        assert_eq!(finding.spec(), &linter.spec());
+        assert_eq!(finding.spec(), &EnvironmentPasswords::spec());
         assert_eq!(
             "ADMIN_PASSWORD",
             finding
@@ -172,7 +172,7 @@ mod tests {
         let lints = linter.v1_pod(&pod);
         assert_eq!(1, lints.len());
         let finding = &lints[0];
-        assert_eq!(finding.spec(), &linter.spec());
+        assert_eq!(finding.spec(), &EnvironmentPasswords::spec());
         assert_eq!(
             "ADMIN_PAssWORD",
             finding
@@ -207,7 +207,7 @@ mod tests {
 
         assert_eq!(2, lints.len());
         let finding = &lints[0];
-        assert_eq!(finding.spec(), &linter.spec());
+        assert_eq!(finding.spec(), &EnvironmentPasswords::spec());
         assert_eq!(
             "SUSPICIOUS_KEY",
             finding
@@ -217,7 +217,7 @@ mod tests {
         );
 
         let finding = &lints[1];
-        assert_eq!(finding.spec(), &linter.spec());
+        assert_eq!(finding.spec(), &EnvironmentPasswords::spec());
         assert_eq!(
             "ENV_ANOTHER_KEY",
             finding

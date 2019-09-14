@@ -1,5 +1,4 @@
 use crate::error::KorrecteError;
-use crate::linters::LintSpec;
 use k8s_openapi::api::apps;
 use k8s_openapi::api::autoscaling;
 use k8s_openapi::api::core;
@@ -83,11 +82,8 @@ pub trait Lint {
             KubeObjectType::V1HorizontalPodAutoscaler(ref o) => {
                 self.v1_horizontal_pod_autoscaler(o)
             }
-            _ => Vec::new(),
         }
     }
-
-    fn spec(&self) -> LintSpec;
 }
 
 #[allow(unused)]
@@ -115,9 +111,6 @@ pub enum KubeObjectType {
             >,
         >,
     ),
-
-    #[doc(hidden)]
-    __Nonexhaustive,
 }
 
 impl KubeObjectType {

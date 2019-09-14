@@ -28,15 +28,17 @@ impl Lint for StatefulsetGracePeriodZero {
             let grace_period = spec.termination_grace_period_seconds.unwrap_or(1);
 
             if grace_period == 0 {
-                let finding = Finding::new(self.spec().clone(), stateful_set.meta().clone());
+                let finding = Finding::new(Self::spec(), stateful_set.meta().clone());
                 findings.push(finding);
             }
         }
 
         findings
     }
+}
 
-    fn spec(&self) -> LintSpec {
+impl StatefulsetGracePeriodZero {
+    fn spec() -> LintSpec {
         LintSpec {
             group: Group::Configuration,
             name: "statefulset_no_grace_period".to_string(),
@@ -46,12 +48,14 @@ impl Lint for StatefulsetGracePeriodZero {
 
 #[cfg(test)]
 mod test {
-    use crate::tests::analyze_file;
+    use crate::linters::lints::statefulset_grace_period_zero::StatefulsetGracePeriodZero;
+    use crate::tests::{analyze_file, filter_findings_by};
     use std::path::Path;
 
     #[test]
     pub fn it_detects_statefulset_with_graceperiod_zero() {
         let findings = analyze_file(Path::new("tests/statefulset_graceperiod.yaml"));
+        let findings = filter_findings_by(findings, &StatefulsetGracePeriodZero::spec());
 
         assert_eq!(1, findings.len());
         assert_eq!(findings[0].spec().name, "statefulset_no_grace_period");

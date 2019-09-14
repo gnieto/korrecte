@@ -38,13 +38,15 @@ impl Lint for NeverRestartWithLivenessProbe {
             return findings;
         }
 
-        let finding = Finding::new(self.spec().clone(), pod.metadata.clone());
+        let finding = Finding::new(NeverRestartWithLivenessProbe::spec(), pod.metadata.clone());
         findings.push(finding);
 
         findings
     }
+}
 
-    fn spec(&self) -> LintSpec {
+impl NeverRestartWithLivenessProbe {
+    fn spec() -> LintSpec {
         LintSpec {
             group: Group::Configuration,
             name: "never_restart_with_liveness_probe".to_string(),

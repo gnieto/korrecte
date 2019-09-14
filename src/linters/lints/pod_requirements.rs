@@ -1,11 +1,10 @@
-use crate::linters::{Group, Lint, LintSpec};
+use crate::linters::{Group, KubeObjectType, Lint, LintSpec};
 
 use crate::reporting::Finding;
-use k8s_openapi::api::apps::v1::{DeploymentSpec, DeploymentStatus};
+use crate::visitor::{pod_spec_visit, PodSpecVisitor};
 use k8s_openapi::api::core::v1::Container;
-use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
-use kube::api::KubeObject;
-use kube::api::{Object, ObjectMeta};
+use k8s_openapi::api::core::v1::PodSpec;
+use kube::api::ObjectMeta;
 use std::collections::BTreeMap;
 
 /// **What it does:** Checks for pods without resource limits
@@ -22,27 +21,16 @@ use std::collections::BTreeMap;
 pub(crate) struct PodRequirements;
 
 impl Lint for PodRequirements {
-    // TODO: Add a visitor which visits PodSpecs for all kind of objects
-    // TODO: Add tests
-    fn v1_pod(&self, pod: &Object<PodSpec, PodStatus>) -> Vec<Finding> {
-        let mut findings = Vec::new();
+    fn object(&self, object: &KubeObjectType) -> Vec<Finding> {
+        let mut visitor = PodRequirementsVisitor::default();
+        pod_spec_visit(&object, &mut visitor);
 
-        self.check_pod_spec(&mut findings, &pod.spec, &pod.meta());
-
-        findings
+        visitor.findings
     }
+}
 
-    fn v1_deployment(&self, deploy: &Object<DeploymentSpec, DeploymentStatus>) -> Vec<Finding> {
-        let mut findings = Vec::new();
-
-        if let Some(ref pod_spec) = deploy.spec.template.spec {
-            self.check_pod_spec(&mut findings, &pod_spec, &deploy.meta());
-        }
-
-        findings
-    }
-
-    fn spec(&self) -> LintSpec {
+impl PodRequirements {
+    fn spec() -> LintSpec {
         LintSpec {
             group: Group::Security,
             name: "pod_requirements".to_string(),
@@ -50,30 +38,31 @@ impl Lint for PodRequirements {
     }
 }
 
-impl PodRequirements {
-    fn check_pod_spec(
-        &self,
-        findings: &mut Vec<Finding>,
-        pod_spec: &PodSpec,
-        metadata: &ObjectMeta,
-    ) {
+#[derive(Default)]
+struct PodRequirementsVisitor {
+    findings: Vec<Finding>,
+}
+
+impl PodSpecVisitor for PodRequirementsVisitor {
+    fn visit_pod_spec(&mut self, pod_spec: &PodSpec, meta: &ObjectMeta) {
+        self.check_pod_spec(pod_spec, meta);
+    }
+}
+
+impl PodRequirementsVisitor {
+    fn check_pod_spec(&mut self, pod_spec: &PodSpec, metadata: &ObjectMeta) {
         for container in pod_spec.containers.iter() {
-            self.check_container(findings, container, metadata);
+            self.check_container(container, metadata);
         }
     }
 
-    fn check_container(
-        &self,
-        findings: &mut Vec<Finding>,
-        container: &Container,
-        metadata: &ObjectMeta,
-    ) {
+    fn check_container(&mut self, container: &Container, metadata: &ObjectMeta) {
         match container.resources {
             None => {
-                self.missing_cpu_limit(findings, metadata, container);
-                self.missing_mem_limit(findings, metadata, container);
-                self.missing_cpu_requirement(findings, metadata, container);
-                self.missing_mem_requirement(findings, metadata, container);
+                self.missing_cpu_limit(metadata, container);
+                self.missing_mem_limit(metadata, container);
+                self.missing_cpu_requirement(metadata, container);
+                self.missing_mem_requirement(metadata, container);
             }
             Some(ref req) => {
                 let empty_map = BTreeMap::new();
@@ -82,84 +71,59 @@ impl PodRequirements {
                 // Check limits
                 let limits = req.limits.as_ref().unwrap_or(&empty_map);
                 if !limits.contains_key("cpu") {
-                    self.missing_cpu_limit(findings, metadata, container);
+                    self.missing_cpu_limit(metadata, container);
                 }
                 if !limits.contains_key("memory") {
-                    self.missing_mem_limit(findings, metadata, container);
+                    self.missing_mem_limit(metadata, container);
                 }
 
                 // Check requirements
                 let requests = req.requests.as_ref().unwrap_or(&empty_map);
                 if !requests.contains_key("cpu") {
-                    self.missing_cpu_requirement(findings, metadata, container);
+                    self.missing_cpu_requirement(metadata, container);
                 }
                 if !requests.contains_key("memory") {
-                    self.missing_mem_requirement(findings, metadata, container);
+                    self.missing_mem_requirement(metadata, container);
                 }
             }
         }
     }
 
-    fn missing_cpu_limit(
-        &self,
-        findings: &mut Vec<Finding>,
-        metadata: &ObjectMeta,
-        container: &Container,
-    ) {
-        self.missing_resource(findings, metadata, container, "missing_cpu_limit");
+    fn missing_cpu_limit(&mut self, metadata: &ObjectMeta, container: &Container) {
+        self.missing_resource(metadata, container, "missing_cpu_limit");
     }
 
-    fn missing_mem_limit(
-        &self,
-        findings: &mut Vec<Finding>,
-        metadata: &ObjectMeta,
-        container: &Container,
-    ) {
-        self.missing_resource(findings, metadata, container, "missing_mem_limit");
+    fn missing_mem_limit(&mut self, metadata: &ObjectMeta, container: &Container) {
+        self.missing_resource(metadata, container, "missing_mem_limit");
     }
 
-    fn missing_cpu_requirement(
-        &self,
-        findings: &mut Vec<Finding>,
-        metadata: &ObjectMeta,
-        container: &Container,
-    ) {
-        self.missing_resource(findings, metadata, container, "missing_cpu_requirement");
+    fn missing_cpu_requirement(&mut self, metadata: &ObjectMeta, container: &Container) {
+        self.missing_resource(metadata, container, "missing_cpu_requirement");
     }
 
-    fn missing_mem_requirement(
-        &self,
-        findings: &mut Vec<Finding>,
-        metadata: &ObjectMeta,
-        container: &Container,
-    ) {
-        self.missing_resource(findings, metadata, container, "missing_mem_requirement");
+    fn missing_mem_requirement(&mut self, metadata: &ObjectMeta, container: &Container) {
+        self.missing_resource(metadata, container, "missing_mem_requirement");
     }
 
-    fn missing_resource(
-        &self,
-        findings: &mut Vec<Finding>,
-        metadata: &ObjectMeta,
-        container: &Container,
-        key: &str,
-    ) {
-        let finding = Finding::new(self.spec().clone(), metadata.clone())
+    fn missing_resource(&mut self, metadata: &ObjectMeta, container: &Container, key: &str) {
+        let finding = Finding::new(PodRequirements::spec(), metadata.clone())
             .add_metadata(key, "")
             .add_metadata("container", container.name.clone());
 
-        findings.push(finding);
+        self.findings.push(finding);
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::linters::lints::pod_requirements::PodRequirements;
     use crate::tests::{analyze_file, filter_findings_by};
     use std::path::Path;
 
     #[test]
     pub fn it_does_not_find_anything_on_properly_configured_pod() {
         let findings = analyze_file(Path::new("tests/pod_requirements.yaml"));
-        let findings = filter_findings_by(findings, "pod_requirements");
+        let findings = filter_findings_by(findings, &PodRequirements::spec());
 
         assert_eq!(0, findings.len());
     }
@@ -167,8 +131,8 @@ mod tests {
     #[test]
     pub fn it_finds_pods_with_missing_requirements_or_limits() {
         let findings = analyze_file(Path::new("tests/pod_requirements_ko.yaml"));
-        let findings = filter_findings_by(findings, "pod_requirements");
+        let findings = filter_findings_by(findings, &PodRequirements::spec());
 
-        assert_eq!(4, findings.len());
+        assert_eq!(8, findings.len());
     }
 }

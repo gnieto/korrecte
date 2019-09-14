@@ -33,16 +33,16 @@ impl Lint for OverlappingProbes {
 
         findings
     }
+}
 
-    fn spec(&self) -> LintSpec {
+impl OverlappingProbes {
+    fn spec() -> LintSpec {
         LintSpec {
             group: Group::Configuration,
             name: "overlapping_probes".to_string(),
         }
     }
-}
 
-impl OverlappingProbes {
     fn calculate_time_frame(probe: &Probe) -> TimeFrame {
         let initial_delay = probe.initial_delay_seconds.unwrap_or(0) as u64;
         let initial = Duration::new(initial_delay, 0);
@@ -77,7 +77,7 @@ impl OverlappingProbes {
                 let readiness_end = format!("{:?}", readiness.end);
                 let liveness_start = format!("{:?}", liveness.start);
 
-                let finding = Finding::new(self.spec().clone(), object_meta.clone())
+                let finding = Finding::new(Self::spec(), object_meta.clone())
                     .add_metadata("container".to_string(), c.name.clone())
                     .add_metadata("readiness_max_delay".to_string(), readiness_end)
                     .add_metadata("liveness_start".to_string(), liveness_start);

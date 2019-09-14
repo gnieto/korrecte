@@ -73,3 +73,26 @@ spec:
           memory: "1G"
         requests:
           cpu: "50m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-no-resources
+  labels:
+    app: deployment-no-resources
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: deployment-no-resources
+  template:
+    metadata:
+      labels:
+        app: deployment-no-resources
+    spec:
+      containers:
+        - name: no-resources
+          image: busybox
+          command:
+            - "sleep"
+            - "10000"

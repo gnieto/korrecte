@@ -39,18 +39,18 @@ impl<'a> Lint for PdbMinReplicas<'a> {
 
         findings
     }
-
-    fn spec(&self) -> LintSpec {
-        LintSpec {
-            group: Group::Configuration,
-            name: "pdb_min_replicas".to_string(),
-        }
-    }
 }
 
 impl<'a> PdbMinReplicas<'a> {
     pub fn new(object_repository: &'a dyn ObjectRepository) -> Self {
         PdbMinReplicas { object_repository }
+    }
+
+    fn spec() -> LintSpec {
+        LintSpec {
+            group: Group::Configuration,
+            name: "pdb_min_replicas".to_string(),
+        }
     }
 
     fn get_min_replicas(
@@ -121,7 +121,7 @@ impl<'a> PdbMinReplicas<'a> {
             let deploy_replicas = d.spec.replicas.unwrap_or(0);
 
             if pdb_min_available >= deploy_replicas {
-                let finding = Finding::new(self.spec().clone(), pdb.metadata.clone())
+                let finding = Finding::new(Self::spec(), pdb.metadata.clone())
                     .add_metadata("deploy_replicas", deploy_replicas)
                     .add_metadata("pdb_min_available", pdb_min_available.to_string());
                 findings.push(finding);
@@ -141,7 +141,7 @@ impl<'a> PdbMinReplicas<'a> {
             let hpa_replicas = d.spec.min_replicas.unwrap_or(0);
 
             if pdb_min_available >= hpa_replicas {
-                let finding = Finding::new(self.spec().clone(), pdb.metadata.clone())
+                let finding = Finding::new(Self::spec(), pdb.metadata.clone())
                     .add_metadata("hpa_replicas", hpa_replicas)
                     .add_metadata("pdb_min_available", pdb_min_available.to_string());
                 findings.push(finding);
@@ -159,13 +159,14 @@ impl<'a> PdbMinReplicas<'a> {
 
 #[cfg(test)]
 mod tests {
+    use crate::linters::lints::pdb_min_replicas::PdbMinReplicas;
     use crate::tests::{analyze_file, filter_findings_by};
     use std::path::Path;
 
     #[test]
     fn test_pdb_with_deploy_missconfigured() {
         let findings = analyze_file(Path::new("tests/pdb_deploy_missconfigured.yaml"));
-        let findings = filter_findings_by(findings, "pdb_min_replicas");
+        let findings = filter_findings_by(findings, &PdbMinReplicas::spec());
 
         assert_eq!(1, findings.len());
         assert_eq!(findings[0].spec().name, "pdb_min_replicas");
@@ -175,7 +176,7 @@ mod tests {
     #[test]
     fn test_pdb_deployment_properly_configured() {
         let findings = analyze_file(Path::new("tests/pdb_deployment_ok.yaml"));
-        let findings = filter_findings_by(findings, "pdb_min_replicas");
+        let findings = filter_findings_by(findings, &PdbMinReplicas::spec());
 
         assert_eq!(0, findings.len());
     }
@@ -183,7 +184,7 @@ mod tests {
     #[test]
     fn test_pdb_with_hpa_missconfigured() {
         let findings = analyze_file(Path::new("tests/pdb_hpa_missconfigured.yaml"));
-        let findings = filter_findings_by(findings, "pdb_min_replicas");
+        let findings = filter_findings_by(findings, &PdbMinReplicas::spec());
 
         assert_eq!(1, findings.len());
         assert_eq!(findings[0].spec().name, "pdb_min_replicas");
@@ -193,7 +194,7 @@ mod tests {
     #[test]
     fn test_pdb_hpa_ok() {
         let findings = analyze_file(Path::new("tests/pdb_hpa_ok.yaml"));
-        let findings = filter_findings_by(findings, "pdb_min_replicas");
+        let findings = filter_findings_by(findings, &PdbMinReplicas::spec());
 
         assert_eq!(0, findings.len());
     }

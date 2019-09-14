@@ -240,7 +240,6 @@ fn build_imports(specs: &[OpenapiResource]) -> String {
 
     let mut namespaces = distinct.iter().cloned().collect::<Vec<String>>();
     namespaces.push("use kube::api::Object;".to_string());
-    namespaces.push("use crate::linters::LintSpec;".to_string());
     namespaces.push("use crate::error::KorrecteError;".to_string());
     namespaces.join("\n")
 }
@@ -269,11 +268,8 @@ fn build_lint_trait(specs: &[OpenapiResource]) -> String {
     fn object(&self, object: &KubeObjectType) -> Vec<crate::reporting::Finding> {{
         match object {{
 {}
-        _ => Vec::new(),
         }}
     }}
-
-    fn spec(&self) -> LintSpec;
 }}", spec_str, match_arm.join("\n"))
 }
 
@@ -302,8 +298,6 @@ fn build_enum(specs: &[OpenapiResource]) -> String {
 #[allow(unused)]
 pub enum KubeObjectType {{
 {}
-    #[doc(hidden)]
-    __Nonexhaustive,
 }}
 
 impl KubeObjectType {{

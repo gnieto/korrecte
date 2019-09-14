@@ -50,14 +50,16 @@ impl<'a> Lint for ServiceWithoutMatchingLabels<'a> {
             });
 
         if !any_matching_pod {
-            let finding = Finding::new(self.spec().clone(), service.metadata.clone());
+            let finding = Finding::new(Self::spec(), service.metadata.clone());
             findings.push(finding);
         }
 
         findings
     }
+}
 
-    fn spec(&self) -> LintSpec {
+impl<'a> ServiceWithoutMatchingLabels<'a> {
+    fn spec() -> LintSpec {
         LintSpec {
             group: Group::Configuration,
             name: "service_without_matching_labels".to_string(),

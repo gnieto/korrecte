@@ -23,6 +23,13 @@ impl RequiredLabels {
     pub fn new(config: Config) -> Self {
         RequiredLabels { config }
     }
+
+    fn spec() -> LintSpec {
+        LintSpec {
+            group: Group::Audit,
+            name: "required_labels".to_string(),
+        }
+    }
 }
 
 impl Lint for RequiredLabels {
@@ -47,19 +54,12 @@ impl Lint for RequiredLabels {
             );
 
             let finding =
-                Finding::new(self.spec().clone(), pod.metadata.clone()).with_metadata(metadata);
+                Finding::new(RequiredLabels::spec(), pod.metadata.clone()).with_metadata(metadata);
 
             findings.push(finding);
         }
 
         findings
-    }
-
-    fn spec(&self) -> LintSpec {
-        LintSpec {
-            group: Group::Audit,
-            name: "required_labels".to_string(),
-        }
     }
 }
 
