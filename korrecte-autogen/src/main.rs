@@ -240,6 +240,7 @@ fn build_imports(specs: &[OpenapiResource]) -> String {
 
     let mut namespaces = distinct.iter().cloned().collect::<Vec<String>>();
     namespaces.push("use kube::api::Object;".to_string());
+    namespaces.push("use crate::reporting::Reporter;".to_string());
     namespaces.push("use crate::error::KorrecteError;".to_string());
     namespaces.join("\n")
 }
@@ -252,20 +253,20 @@ fn build_lint_trait(specs: &[OpenapiResource]) -> String {
         let struct_path = format!("Object<{}, {}>", s.spec(), s.status());
 
         spec_str.push_str(
-            &format!("\tfn {}(&self, _{}: &{}) -> Vec<crate::reporting::Finding> {{ Vec::new() }}\n",
+            &format!("\tfn {}(&self, _{}: &{}, _reporter: &dyn Reporter)  {{  }}\n",
                      s.lint_name(),
                      s.clean_name(),
                      struct_path
             )
         );
 
-        match_arm.push(format!("\t\t\tKubeObjectType::{}(ref o) => self.{}(o),", s.variant(), s.lint_name()));
+        match_arm.push(format!("\t\t\tKubeObjectType::{}(ref o) => self.{}(o, reporter),", s.variant(), s.lint_name()));
     }
 
 
     format!("pub trait Lint {{
 {}
-    fn object(&self, object: &KubeObjectType) -> Vec<crate::reporting::Finding> {{
+    fn object(&self, object: &KubeObjectType, reporter: &dyn Reporter) {{
         match object {{
 {}
         }}

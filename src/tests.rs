@@ -1,3 +1,4 @@
+use crate::config::Config;
 use crate::kube::file::FileObjectRepository;
 use crate::kube::ObjectRepository;
 use crate::linters::evaluator::OneShotEvaluator;
@@ -6,14 +7,18 @@ use crate::reporting::{Finding, Reporter, SingleThreadedReporter};
 use std::borrow::Borrow;
 use std::path::Path;
 
-pub fn analyze_file(path: &Path) -> Vec<Finding> {
+pub fn analyze_file_cfg(path: &Path, config: Config) -> Vec<Finding> {
     let reporter = SingleThreadedReporter::default();
     let repository: Box<dyn ObjectRepository> = Box::new(FileObjectRepository::new(path).unwrap());
-    let ll = LintCollection::all(crate::config::Config::default(), repository.borrow());
+    let ll = LintCollection::all(config, repository.borrow());
 
     OneShotEvaluator::evaluate(&reporter, ll, repository.borrow());
 
     reporter.findings()
+}
+
+pub fn analyze_file(path: &Path) -> Vec<Finding> {
+    analyze_file_cfg(path, Config::default())
 }
 
 pub fn filter_findings_by(findings: Vec<Finding>, spec: &LintSpec) -> Vec<Finding> {

@@ -1,6 +1,7 @@
 use crate::linters::{Group, Lint, LintSpec};
 
 use crate::reporting::Finding;
+use crate::reporting::Reporter;
 use k8s_openapi::api::apps::v1::{StatefulSetSpec, StatefulSetStatus};
 use kube::api::{KubeObject, Object};
 
@@ -21,19 +22,16 @@ impl Lint for StatefulsetGracePeriodZero {
     fn v1_stateful_set(
         &self,
         stateful_set: &Object<StatefulSetSpec, StatefulSetStatus>,
-    ) -> Vec<Finding> {
-        let mut findings = Vec::new();
-
+        reporter: &dyn Reporter,
+    ) {
         if let Some(ref spec) = stateful_set.spec.template.spec {
             let grace_period = spec.termination_grace_period_seconds.unwrap_or(1);
 
             if grace_period == 0 {
                 let finding = Finding::new(Self::spec(), stateful_set.meta().clone());
-                findings.push(finding);
+                reporter.report(finding);
             }
         }
-
-        findings
     }
 }
 

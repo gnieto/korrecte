@@ -1,6 +1,6 @@
 use crate::kube::ObjectRepository;
 use crate::linters::LintList;
-use crate::reporting::{Finding, Reporter};
+use crate::reporting::Reporter;
 
 pub struct OneShotEvaluator;
 
@@ -12,14 +12,8 @@ impl OneShotEvaluator {
     ) {
         for lint in list.iter() {
             for object in object_repository.all() {
-                Self::report_lints(reporter, lint.object(&object));
+                lint.object(&object, reporter);
             }
-        }
-    }
-
-    fn report_lints(reporter: &dyn Reporter, findings: Vec<Finding>) {
-        for f in findings {
-            reporter.report(f);
         }
     }
 }

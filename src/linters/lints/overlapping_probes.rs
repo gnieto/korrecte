@@ -1,6 +1,7 @@
 use crate::linters::{Group, KubeObjectType, Lint, LintSpec};
 
 use crate::reporting::Finding;
+use crate::reporting::Reporter;
 use crate::visitor::{pod_spec_visit, PodSpecVisitor};
 use k8s_openapi::api::core::v1::{Container, PodSpec, Probe};
 use kube::api::ObjectMeta;
@@ -25,20 +26,17 @@ use std::time::Duration;
 pub(crate) struct OverlappingProbes;
 
 impl Lint for OverlappingProbes {
-    fn object(&self, object: &KubeObjectType) -> Vec<Finding> {
-        let mut visitor = OverlappingProbesVisitor::default();
+    fn object(&self, object: &KubeObjectType, reporter: &dyn Reporter) {
+        let mut visitor = OverlappingProbesVisitor { reporter };
         pod_spec_visit(&object, &mut visitor);
-
-        visitor.findings
     }
 }
 
-#[derive(Default)]
-struct OverlappingProbesVisitor {
-    findings: Vec<Finding>,
+struct OverlappingProbesVisitor<'a> {
+    reporter: &'a dyn Reporter,
 }
 
-impl PodSpecVisitor for OverlappingProbesVisitor {
+impl<'a> PodSpecVisitor for OverlappingProbesVisitor<'a> {
     fn visit_pod_spec(&mut self, pod_spec: &PodSpec, meta: &ObjectMeta) {
         for c in pod_spec.containers.iter() {
             self.check_container_probes(&c, &meta);
@@ -46,7 +44,7 @@ impl PodSpecVisitor for OverlappingProbesVisitor {
     }
 }
 
-impl OverlappingProbesVisitor {
+impl<'a> OverlappingProbesVisitor<'a> {
     fn check_container_probes(&mut self, c: &Container, object_meta: &ObjectMeta) {
         let readiness_probe = c.readiness_probe.as_ref().map(Self::calculate_time_frame);
         let liveness_probes = c.liveness_probe.as_ref().map(Self::calculate_time_frame);
@@ -61,7 +59,7 @@ impl OverlappingProbesVisitor {
                     .add_metadata("readiness_max_delay".to_string(), readiness_end)
                     .add_metadata("liveness_start".to_string(), liveness_start);
 
-                self.findings.push(finding);
+                self.reporter.report(finding);
             }
         }
     }

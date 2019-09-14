@@ -2,6 +2,7 @@ use crate::linters::{Group, KubeObjectType, Lint, LintSpec};
 
 use crate::kube::ObjectRepository;
 use crate::reporting::Finding;
+use crate::reporting::Reporter;
 use k8s_openapi::api::apps::v1::{DeploymentSpec, DeploymentStatus};
 use k8s_openapi::api::autoscaling::v1::{
     HorizontalPodAutoscalerSpec, HorizontalPodAutoscalerStatus,
@@ -29,15 +30,12 @@ impl<'a> Lint for PdbMinReplicas<'a> {
     fn v1beta1_pod_disruption_budget(
         &self,
         pdb: &Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>,
-    ) -> Vec<Finding> {
-        let mut findings = Vec::new();
-
+        reporter: &dyn Reporter,
+    ) {
         if let Some(pdb_min_available) = Self::get_min_replicas(pdb) {
-            self.matching_deployments(pdb, &mut findings, pdb_min_available);
-            self.matching_hpas(pdb, &mut findings, pdb_min_available);
+            self.matching_deployments(pdb, reporter, pdb_min_available);
+            self.matching_hpas(pdb, reporter, pdb_min_available);
         }
-
-        findings
     }
 }
 
@@ -112,7 +110,7 @@ impl<'a> PdbMinReplicas<'a> {
     fn matching_deployments(
         &self,
         pdb: &Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>,
-        findings: &mut Vec<Finding>,
+        reporter: &dyn Reporter,
         pdb_min_available: i32,
     ) {
         let matching_deployments = self.find_matching_deployments(pdb);
@@ -124,7 +122,7 @@ impl<'a> PdbMinReplicas<'a> {
                 let finding = Finding::new(Self::spec(), pdb.metadata.clone())
                     .add_metadata("deploy_replicas", deploy_replicas)
                     .add_metadata("pdb_min_available", pdb_min_available.to_string());
-                findings.push(finding);
+                reporter.report(finding);
             }
         })
     }
@@ -132,7 +130,7 @@ impl<'a> PdbMinReplicas<'a> {
     fn matching_hpas(
         &self,
         pdb: &Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>,
-        findings: &mut Vec<Finding>,
+        reporter: &dyn Reporter,
         pdb_min_available: i32,
     ) {
         let matching_hpa = self.find_matching_hpa(pdb);
@@ -144,7 +142,7 @@ impl<'a> PdbMinReplicas<'a> {
                 let finding = Finding::new(Self::spec(), pdb.metadata.clone())
                     .add_metadata("hpa_replicas", hpa_replicas)
                     .add_metadata("pdb_min_available", pdb_min_available.to_string());
-                findings.push(finding);
+                reporter.report(finding);
             }
         })
     }

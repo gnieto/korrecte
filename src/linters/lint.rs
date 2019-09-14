@@ -1,4 +1,5 @@
 use crate::error::KorrecteError;
+use crate::reporting::Reporter;
 use k8s_openapi::api::apps;
 use k8s_openapi::api::autoscaling;
 use k8s_openapi::api::core;
@@ -9,44 +10,44 @@ pub trait Lint {
     fn v1_node(
         &self,
         _node: &Object<core::v1::NodeSpec, core::v1::NodeStatus>,
-    ) -> Vec<crate::reporting::Finding> {
-        Vec::new()
+        _reporter: &dyn Reporter,
+    ) {
     }
     fn v1_pod(
         &self,
         _pod: &Object<core::v1::PodSpec, core::v1::PodStatus>,
-    ) -> Vec<crate::reporting::Finding> {
-        Vec::new()
+        _reporter: &dyn Reporter,
+    ) {
     }
     fn v1_service(
         &self,
         _service: &Object<core::v1::ServiceSpec, core::v1::ServiceStatus>,
-    ) -> Vec<crate::reporting::Finding> {
-        Vec::new()
+        _reporter: &dyn Reporter,
+    ) {
     }
     fn v1_daemon_set(
         &self,
         _daemon_set: &Object<apps::v1::DaemonSetSpec, apps::v1::DaemonSetStatus>,
-    ) -> Vec<crate::reporting::Finding> {
-        Vec::new()
+        _reporter: &dyn Reporter,
+    ) {
     }
     fn v1_deployment(
         &self,
         _deployment: &Object<apps::v1::DeploymentSpec, apps::v1::DeploymentStatus>,
-    ) -> Vec<crate::reporting::Finding> {
-        Vec::new()
+        _reporter: &dyn Reporter,
+    ) {
     }
     fn v1_replica_set(
         &self,
         _replica_set: &Object<apps::v1::ReplicaSetSpec, apps::v1::ReplicaSetStatus>,
-    ) -> Vec<crate::reporting::Finding> {
-        Vec::new()
+        _reporter: &dyn Reporter,
+    ) {
     }
     fn v1_stateful_set(
         &self,
         _stateful_set: &Object<apps::v1::StatefulSetSpec, apps::v1::StatefulSetStatus>,
-    ) -> Vec<crate::reporting::Finding> {
-        Vec::new()
+        _reporter: &dyn Reporter,
+    ) {
     }
     fn v1beta1_pod_disruption_budget(
         &self,
@@ -54,8 +55,8 @@ pub trait Lint {
             policy::v1beta1::PodDisruptionBudgetSpec,
             policy::v1beta1::PodDisruptionBudgetStatus,
         >,
-    ) -> Vec<crate::reporting::Finding> {
-        Vec::new()
+        _reporter: &dyn Reporter,
+    ) {
     }
     fn v1_horizontal_pod_autoscaler(
         &self,
@@ -63,24 +64,24 @@ pub trait Lint {
             autoscaling::v1::HorizontalPodAutoscalerSpec,
             autoscaling::v1::HorizontalPodAutoscalerStatus,
         >,
-    ) -> Vec<crate::reporting::Finding> {
-        Vec::new()
+        _reporter: &dyn Reporter,
+    ) {
     }
 
-    fn object(&self, object: &KubeObjectType) -> Vec<crate::reporting::Finding> {
+    fn object(&self, object: &KubeObjectType, reporter: &dyn Reporter) {
         match object {
-            KubeObjectType::V1Node(ref o) => self.v1_node(o),
-            KubeObjectType::V1Pod(ref o) => self.v1_pod(o),
-            KubeObjectType::V1Service(ref o) => self.v1_service(o),
-            KubeObjectType::V1DaemonSet(ref o) => self.v1_daemon_set(o),
-            KubeObjectType::V1Deployment(ref o) => self.v1_deployment(o),
-            KubeObjectType::V1ReplicaSet(ref o) => self.v1_replica_set(o),
-            KubeObjectType::V1StatefulSet(ref o) => self.v1_stateful_set(o),
+            KubeObjectType::V1Node(ref o) => self.v1_node(o, reporter),
+            KubeObjectType::V1Pod(ref o) => self.v1_pod(o, reporter),
+            KubeObjectType::V1Service(ref o) => self.v1_service(o, reporter),
+            KubeObjectType::V1DaemonSet(ref o) => self.v1_daemon_set(o, reporter),
+            KubeObjectType::V1Deployment(ref o) => self.v1_deployment(o, reporter),
+            KubeObjectType::V1ReplicaSet(ref o) => self.v1_replica_set(o, reporter),
+            KubeObjectType::V1StatefulSet(ref o) => self.v1_stateful_set(o, reporter),
             KubeObjectType::V1beta1PodDisruptionBudget(ref o) => {
-                self.v1beta1_pod_disruption_budget(o)
+                self.v1beta1_pod_disruption_budget(o, reporter)
             }
             KubeObjectType::V1HorizontalPodAutoscaler(ref o) => {
-                self.v1_horizontal_pod_autoscaler(o)
+                self.v1_horizontal_pod_autoscaler(o, reporter)
             }
         }
     }

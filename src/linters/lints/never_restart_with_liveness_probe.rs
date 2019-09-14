@@ -1,6 +1,7 @@
 use crate::linters::{Group, KubeObjectType, Lint, LintSpec};
 
 use crate::reporting::Finding;
+use crate::reporting::Reporter;
 use crate::visitor::{pod_spec_visit, PodSpecVisitor};
 use k8s_openapi::api::core::v1::PodSpec;
 use kube::api::ObjectMeta;
@@ -18,20 +19,17 @@ use kube::api::ObjectMeta;
 pub(crate) struct NeverRestartWithLivenessProbe;
 
 impl Lint for NeverRestartWithLivenessProbe {
-    fn object(&self, object: &KubeObjectType) -> Vec<Finding> {
-        let mut visitor = NeverRestartWithLivenessProbeVisitor::default();
+    fn object(&self, object: &KubeObjectType, reporter: &dyn Reporter) {
+        let mut visitor = NeverRestartWithLivenessProbeVisitor { reporter };
         pod_spec_visit(&object, &mut visitor);
-
-        visitor.findings
     }
 }
 
-#[derive(Default)]
-struct NeverRestartWithLivenessProbeVisitor {
-    findings: Vec<Finding>,
+struct NeverRestartWithLivenessProbeVisitor<'a> {
+    reporter: &'a dyn Reporter,
 }
 
-impl PodSpecVisitor for NeverRestartWithLivenessProbeVisitor {
+impl<'a> PodSpecVisitor for NeverRestartWithLivenessProbeVisitor<'a> {
     fn visit_pod_spec(&mut self, pod_spec: &PodSpec, meta: &ObjectMeta) {
         let restart_policy: String = pod_spec
             .restart_policy
@@ -51,7 +49,7 @@ impl PodSpecVisitor for NeverRestartWithLivenessProbeVisitor {
         }
 
         let finding = Finding::new(NeverRestartWithLivenessProbe::spec(), meta.clone());
-        self.findings.push(finding);
+        self.reporter.report(finding);
     }
 }
 

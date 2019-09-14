@@ -2,6 +2,7 @@ use crate::linters::{Group, KubeObjectType, Lint, LintSpec};
 
 use crate::kube::ObjectRepository;
 use crate::reporting::Finding;
+use crate::reporting::Reporter;
 use k8s_openapi::api::core::v1::{ServiceSpec, ServiceStatus};
 use kube::api::Object;
 use std::collections::BTreeMap;
@@ -26,8 +27,7 @@ impl<'a> ServiceWithoutMatchingLabels<'a> {
 }
 
 impl<'a> Lint for ServiceWithoutMatchingLabels<'a> {
-    fn v1_service(&self, service: &Object<ServiceSpec, ServiceStatus>) -> Vec<Finding> {
-        let mut findings = Vec::new();
+    fn v1_service(&self, service: &Object<ServiceSpec, ServiceStatus>, reporter: &dyn Reporter) {
         let selectors: BTreeMap<String, String> = service.spec.selector.clone().unwrap_or_default();
 
         let any_matching_pod = self
@@ -51,10 +51,8 @@ impl<'a> Lint for ServiceWithoutMatchingLabels<'a> {
 
         if !any_matching_pod {
             let finding = Finding::new(Self::spec(), service.metadata.clone());
-            findings.push(finding);
+            reporter.report(finding);
         }
-
-        findings
     }
 }
 

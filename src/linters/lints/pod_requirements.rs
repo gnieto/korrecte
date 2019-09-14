@@ -1,6 +1,7 @@
 use crate::linters::{Group, KubeObjectType, Lint, LintSpec};
 
 use crate::reporting::Finding;
+use crate::reporting::Reporter;
 use crate::visitor::{pod_spec_visit, PodSpecVisitor};
 use k8s_openapi::api::core::v1::Container;
 use k8s_openapi::api::core::v1::PodSpec;
@@ -21,11 +22,9 @@ use std::collections::BTreeMap;
 pub(crate) struct PodRequirements;
 
 impl Lint for PodRequirements {
-    fn object(&self, object: &KubeObjectType) -> Vec<Finding> {
-        let mut visitor = PodRequirementsVisitor::default();
+    fn object(&self, object: &KubeObjectType, reporter: &dyn Reporter) {
+        let mut visitor = PodRequirementsVisitor { reporter };
         pod_spec_visit(&object, &mut visitor);
-
-        visitor.findings
     }
 }
 
@@ -38,25 +37,24 @@ impl PodRequirements {
     }
 }
 
-#[derive(Default)]
-struct PodRequirementsVisitor {
-    findings: Vec<Finding>,
+struct PodRequirementsVisitor<'a> {
+    reporter: &'a dyn Reporter,
 }
 
-impl PodSpecVisitor for PodRequirementsVisitor {
+impl<'a> PodSpecVisitor for PodRequirementsVisitor<'a> {
     fn visit_pod_spec(&mut self, pod_spec: &PodSpec, meta: &ObjectMeta) {
         self.check_pod_spec(pod_spec, meta);
     }
 }
 
-impl PodRequirementsVisitor {
-    fn check_pod_spec(&mut self, pod_spec: &PodSpec, metadata: &ObjectMeta) {
+impl<'a> PodRequirementsVisitor<'a> {
+    fn check_pod_spec(&self, pod_spec: &PodSpec, metadata: &ObjectMeta) {
         for container in pod_spec.containers.iter() {
             self.check_container(container, metadata);
         }
     }
 
-    fn check_container(&mut self, container: &Container, metadata: &ObjectMeta) {
+    fn check_container(&self, container: &Container, metadata: &ObjectMeta) {
         match container.resources {
             None => {
                 self.missing_cpu_limit(metadata, container);
@@ -89,28 +87,28 @@ impl PodRequirementsVisitor {
         }
     }
 
-    fn missing_cpu_limit(&mut self, metadata: &ObjectMeta, container: &Container) {
+    fn missing_cpu_limit(&self, metadata: &ObjectMeta, container: &Container) {
         self.missing_resource(metadata, container, "missing_cpu_limit");
     }
 
-    fn missing_mem_limit(&mut self, metadata: &ObjectMeta, container: &Container) {
+    fn missing_mem_limit(&self, metadata: &ObjectMeta, container: &Container) {
         self.missing_resource(metadata, container, "missing_mem_limit");
     }
 
-    fn missing_cpu_requirement(&mut self, metadata: &ObjectMeta, container: &Container) {
+    fn missing_cpu_requirement(&self, metadata: &ObjectMeta, container: &Container) {
         self.missing_resource(metadata, container, "missing_cpu_requirement");
     }
 
-    fn missing_mem_requirement(&mut self, metadata: &ObjectMeta, container: &Container) {
+    fn missing_mem_requirement(&self, metadata: &ObjectMeta, container: &Container) {
         self.missing_resource(metadata, container, "missing_mem_requirement");
     }
 
-    fn missing_resource(&mut self, metadata: &ObjectMeta, container: &Container, key: &str) {
+    fn missing_resource(&self, metadata: &ObjectMeta, container: &Container, key: &str) {
         let finding = Finding::new(PodRequirements::spec(), metadata.clone())
             .add_metadata(key, "")
             .add_metadata("container", container.name.clone());
 
-        self.findings.push(finding);
+        self.reporter.report(finding);
     }
 }
 
