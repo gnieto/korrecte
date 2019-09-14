@@ -15,3 +15,10 @@ pub fn analyze_file(path: &Path) -> Vec<Finding> {
 
     reporter.findings()
 }
+
+pub fn filter_findings_by(findings: Vec<Finding>, lint_name: &str) -> Vec<Finding> {
+    findings
+        .into_iter()
+        .filter(|f| f.spec().name == lint_name)
+        .collect()
+}

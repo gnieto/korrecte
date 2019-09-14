@@ -159,12 +159,13 @@ impl<'a> PdbMinReplicas<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::tests::analyze_file;
+    use crate::tests::{analyze_file, filter_findings_by};
     use std::path::Path;
 
     #[test]
     fn test_pdb_with_deploy_missconfigured() {
         let findings = analyze_file(Path::new("tests/pdb_deploy_missconfigured.yaml"));
+        let findings = filter_findings_by(findings, "pdb_min_replicas");
 
         assert_eq!(1, findings.len());
         assert_eq!(findings[0].spec().name, "pdb_min_replicas");
@@ -174,6 +175,7 @@ mod tests {
     #[test]
     fn test_pdb_deployment_properly_configured() {
         let findings = analyze_file(Path::new("tests/pdb_deployment_ok.yaml"));
+        let findings = filter_findings_by(findings, "pdb_min_replicas");
 
         assert_eq!(0, findings.len());
     }
@@ -181,6 +183,7 @@ mod tests {
     #[test]
     fn test_pdb_with_hpa_missconfigured() {
         let findings = analyze_file(Path::new("tests/pdb_hpa_missconfigured.yaml"));
+        let findings = filter_findings_by(findings, "pdb_min_replicas");
 
         assert_eq!(1, findings.len());
         assert_eq!(findings[0].spec().name, "pdb_min_replicas");
@@ -190,6 +193,7 @@ mod tests {
     #[test]
     fn test_pdb_hpa_ok() {
         let findings = analyze_file(Path::new("tests/pdb_hpa_ok.yaml"));
+        let findings = filter_findings_by(findings, "pdb_min_replicas");
 
         assert_eq!(0, findings.len());
     }

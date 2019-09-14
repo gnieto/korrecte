@@ -84,7 +84,7 @@ impl PodRequirements {
                 if !limits.contains_key("cpu") {
                     self.missing_cpu_limit(findings, metadata, container);
                 }
-                if !limits.contains_key("mem") {
+                if !limits.contains_key("memory") {
                     self.missing_mem_limit(findings, metadata, container);
                 }
 
@@ -93,7 +93,7 @@ impl PodRequirements {
                 if !requests.contains_key("cpu") {
                     self.missing_cpu_requirement(findings, metadata, container);
                 }
-                if !requests.contains_key("mem") {
+                if !requests.contains_key("memory") {
                     self.missing_mem_requirement(findings, metadata, container);
                 }
             }
@@ -148,5 +148,27 @@ impl PodRequirements {
             .add_metadata("container", container.name.clone());
 
         findings.push(finding);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::tests::{analyze_file, filter_findings_by};
+    use std::path::Path;
+
+    #[test]
+    pub fn it_does_not_find_anything_on_properly_configured_pod() {
+        let findings = analyze_file(Path::new("tests/pod_requirements.yaml"));
+        let findings = filter_findings_by(findings, "pod_requirements");
+
+        assert_eq!(0, findings.len());
+    }
+
+    #[test]
+    pub fn it_finds_pods_with_missing_requirements_or_limits() {
+        let findings = analyze_file(Path::new("tests/pod_requirements_ko.yaml"));
+        let findings = filter_findings_by(findings, "pod_requirements");
+
+        assert_eq!(4, findings.len());
     }
 }
