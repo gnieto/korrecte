@@ -1,8 +1,9 @@
-use crate::linters::{Group, Lint, LintSpec};
+use crate::linters::{Group, KubeObjectType, Lint, LintSpec};
 
 use crate::reporting::Finding;
-use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
-use kube::api::Object;
+use crate::visitor::{pod_spec_visit, PodSpecVisitor};
+use k8s_openapi::api::core::v1::PodSpec;
+use kube::api::ObjectMeta;
 
 /// **What it does:** Finds pods which have a `Never` restart policy and have liveness probe set
 ///
@@ -17,31 +18,40 @@ use kube::api::Object;
 pub(crate) struct NeverRestartWithLivenessProbe;
 
 impl Lint for NeverRestartWithLivenessProbe {
-    fn v1_pod(&self, pod: &Object<PodSpec, PodStatus>) -> Vec<Finding> {
-        let mut findings = Vec::new();
-        let restart_policy: String = pod
-            .spec
+    fn object(&self, object: &KubeObjectType) -> Vec<Finding> {
+        let mut visitor = NeverRestartWithLivenessProbeVisitor::default();
+        pod_spec_visit(&object, &mut visitor);
+
+        visitor.findings
+    }
+}
+
+#[derive(Default)]
+struct NeverRestartWithLivenessProbeVisitor {
+    findings: Vec<Finding>,
+}
+
+impl PodSpecVisitor for NeverRestartWithLivenessProbeVisitor {
+    fn visit_pod_spec(&mut self, pod_spec: &PodSpec, meta: &ObjectMeta) {
+        let restart_policy: String = pod_spec
             .restart_policy
             .clone()
             .unwrap_or_else(|| "Always".to_string());
         if restart_policy.to_ascii_lowercase() != "never" {
-            return findings;
+            return;
         }
 
-        let has_any_liveness_probe = pod
-            .spec
+        let has_any_liveness_probe = pod_spec
             .containers
             .iter()
             .any(|c| c.liveness_probe.is_some());
 
         if !has_any_liveness_probe {
-            return findings;
+            return;
         }
 
-        let finding = Finding::new(NeverRestartWithLivenessProbe::spec(), pod.metadata.clone());
-        findings.push(finding);
-
-        findings
+        let finding = Finding::new(NeverRestartWithLivenessProbe::spec(), meta.clone());
+        self.findings.push(finding);
     }
 }
 
@@ -51,5 +61,24 @@ impl NeverRestartWithLivenessProbe {
             group: Group::Configuration,
             name: "never_restart_with_liveness_probe".to_string(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::linters::lints::never_restart_with_liveness_probe::NeverRestartWithLivenessProbe;
+    use crate::tests::{analyze_file, filter_findings_by};
+    use std::path::Path;
+
+    #[test]
+    fn it_finds_never_restart_errors() {
+        let findings = analyze_file(Path::new("tests/never_restart.yaml"));
+        let findings = filter_findings_by(findings, &NeverRestartWithLivenessProbe::spec());
+
+        assert_eq!(1, findings.len());
+        assert_eq!(
+            findings[0].object_metadata().name,
+            "hello-node-never-restart"
+        );
     }
 }
