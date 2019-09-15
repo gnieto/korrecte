@@ -33,8 +33,8 @@ fn main() {
 {}
 ", ns, lint, enum_str);
 
-    write_to(&source.trim(), "../src/linters/lint.rs");
-    write_to(&build_kube_client(&specs), "../src/kube/api.rs")
+    write_to(&source.trim(), "../korrecte-lib/src/linters/lint.rs");
+    write_to(&build_kube_client(&specs), "../korrecte-lib/src/kube/api.rs")
 }
 
 struct OpenapiResource<'a> {
@@ -173,6 +173,8 @@ use kube::Result;
 use serde::de::DeserializeOwned;
 use crate::linters::KubeObjectType;
 use crate::kube::ObjectRepository;
+use ::kube::config as kube_config;
+use crate::error::KorrecteError;
 
 #[derive(Clone)]
 pub struct ApiObjectRepository {{
@@ -180,7 +182,8 @@ pub struct ApiObjectRepository {{
 }}
 
 impl ApiObjectRepository {{
-    pub fn new(kube_config: Configuration) -> Result<Self> {{
+    pub fn new() -> Result<Self> {{
+        let kube_config = kube_config::load_kube_config()?;
         let client = APIClient::new(kube_config);
 
         Ok(ApiObjectRepository {{

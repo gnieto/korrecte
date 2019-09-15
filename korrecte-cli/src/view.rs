@@ -1,5 +1,5 @@
-use super::View;
-use crate::reporting::Finding;
+use korrecte::view::View;
+use korrecte::reporting::Finding;
 use colored::*;
 
 pub struct Cli;

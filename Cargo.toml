@@ -2,5 +2,6 @@
 
 members = [
     "korrecte-autogen",
+    "korrecte-cli",
     "korrecte-lib",
 ]

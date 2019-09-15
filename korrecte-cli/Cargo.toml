@@ -1,0 +1,14 @@
+[package]
+name = "korrecte-cli"
+version = "0.1.0"
+authors = ["Guillem Nieto <gnieto.talo@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = {version = "2.33", features = ["yaml"]}
+colored = "1.8.0"
+toml = "0.5"
+
+korrecte = { path = '../korrecte-lib' }

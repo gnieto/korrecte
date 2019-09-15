@@ -6,6 +6,7 @@ pub(crate) mod evaluator;
 mod lint;
 pub(crate) mod lints;
 pub use lint::{KubeObjectType, Lint};
+pub use evaluator::OneShotEvaluator;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub enum Group {

@@ -1,24 +1,15 @@
-mod config;
-mod error;
-mod kube;
-mod linters;
-mod reporting;
-#[cfg(test)]
-mod tests;
 mod view;
-mod visitor;
 
-use crate::config::Config;
-use crate::error::KorrecteError;
-use crate::kube::api::{ApiObjectRepository, FrozenObjectRepository};
-use crate::kube::file::FileObjectRepository;
-use crate::kube::ObjectRepository;
-use crate::linters::evaluator::OneShotEvaluator;
-use crate::linters::LintCollection;
-use crate::reporting::Reporter;
-use crate::view::cli::Cli;
-use crate::view::View;
-use ::kube::config as kube_config;
+use korrecte::config::Config;
+use korrecte::error::KorrecteError;
+use korrecte::kube::api::{ApiObjectRepository, FrozenObjectRepository};
+use korrecte::kube::file::FileObjectRepository;
+use korrecte::kube::ObjectRepository;
+use korrecte::linters::OneShotEvaluator;
+use korrecte::linters::LintCollection;
+use korrecte::reporting::Reporter;
+use korrecte::reporting::SingleThreadedReporter;
+use korrecte::view::View;
 use clap::load_yaml;
 use clap::{App, ArgMatches};
 use std::borrow::Borrow;
@@ -27,8 +18,10 @@ use std::io::prelude::*;
 use std::path::Path;
 use toml;
 
+use crate::view::Cli;
+
 fn main() -> Result<(), KorrecteError> {
-    let yaml = load_yaml!("cli.yaml");
+    let yaml = load_yaml!("../cli.yaml");
     let matches = App::from_yaml(yaml).get_matches();
 
     let cfg_path = matches.value_of("config").unwrap_or("korrecte.toml");
@@ -37,7 +30,7 @@ fn main() -> Result<(), KorrecteError> {
         Config::default()
     });
 
-    let reporter = reporting::SingleThreadedReporter::default();
+    let reporter = SingleThreadedReporter::default();
     let object_repository = build_object_repository(&matches)?;
 
     let list = LintCollection::all(cfg, &*object_repository);
@@ -53,10 +46,9 @@ fn build_object_repository(
 ) -> Result<Box<dyn ObjectRepository>, KorrecteError> {
     match matches.value_of("source") {
         Some("api") | None => {
-            let config = kube_config::load_kube_config()
-                .map_err(|_| KorrecteError::Generic("Could not load kube config".into()))?;
+
             Ok(Box::new(FrozenObjectRepository::from(
-                ApiObjectRepository::new(config)?,
+                ApiObjectRepository::new()?,
             )))
         }
         Some("file") => {

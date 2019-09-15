@@ -10,8 +10,5 @@ serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8"
 serde_json = "1.0"
 toml = "0.5"
-clap = {version = "2.33", features = ["yaml"]}
 yaml-rust = "0.4"
 kube = {  version = "0.16.1", features = ["openapi"] }
-
-colored="1.8.0"
