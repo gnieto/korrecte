@@ -163,7 +163,7 @@ mod tests {
 
     #[test]
     fn test_pdb_with_deploy_missconfigured() {
-        let findings = analyze_file(Path::new("tests/pdb_deploy_missconfigured.yaml"));
+        let findings = analyze_file(Path::new("../tests/pdb_deploy_missconfigured.yaml"));
         let findings = filter_findings_by(findings, &PdbMinReplicas::spec());
 
         assert_eq!(1, findings.len());
@@ -173,7 +173,7 @@ mod tests {
 
     #[test]
     fn test_pdb_deployment_properly_configured() {
-        let findings = analyze_file(Path::new("tests/pdb_deployment_ok.yaml"));
+        let findings = analyze_file(Path::new("../tests/pdb_deployment_ok.yaml"));
         let findings = filter_findings_by(findings, &PdbMinReplicas::spec());
 
         assert_eq!(0, findings.len());
@@ -181,7 +181,7 @@ mod tests {
 
     #[test]
     fn test_pdb_with_hpa_missconfigured() {
-        let findings = analyze_file(Path::new("tests/pdb_hpa_missconfigured.yaml"));
+        let findings = analyze_file(Path::new("../tests/pdb_hpa_missconfigured.yaml"));
         let findings = filter_findings_by(findings, &PdbMinReplicas::spec());
 
         assert_eq!(1, findings.len());
@@ -191,7 +191,7 @@ mod tests {
 
     #[test]
     fn test_pdb_hpa_ok() {
-        let findings = analyze_file(Path::new("tests/pdb_hpa_ok.yaml"));
+        let findings = analyze_file(Path::new("../tests/pdb_hpa_ok.yaml"));
         let findings = filter_findings_by(findings, &PdbMinReplicas::spec());
 
         assert_eq!(0, findings.len());

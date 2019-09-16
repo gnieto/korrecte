@@ -121,7 +121,7 @@ mod tests {
 
     #[test]
     fn it_finds_passwords_on_pods() {
-        let findings = analyze_file(Path::new("tests/secret_on_env_var.yaml"));
+        let findings = analyze_file(Path::new("../tests/secret_on_env_var.yaml"));
         let findings = filter_findings_by(findings, &EnvironmentPasswords::spec());
 
         assert_eq!(4, findings.len());
@@ -150,7 +150,7 @@ mod tests {
         let mut global_config = crate::config::Config::default();
         global_config.environment_passwords = config;
 
-        let findings = analyze_file_cfg(Path::new("tests/secret_on_env_var.yaml"), global_config);
+        let findings = analyze_file_cfg(Path::new("../tests/secret_on_env_var.yaml"), global_config);
         let findings = filter_findings_by(findings, &EnvironmentPasswords::spec());
 
         assert_eq!(2, findings.len());

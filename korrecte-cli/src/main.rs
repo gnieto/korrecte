@@ -1,17 +1,19 @@
+mod error;
 mod view;
 
+use crate::error::CliError;
+use clap::load_yaml;
+use clap::{App, ArgMatches};
 use korrecte::config::Config;
 use korrecte::error::KorrecteError;
 use korrecte::kube::api::{ApiObjectRepository, FrozenObjectRepository};
 use korrecte::kube::file::FileObjectRepository;
 use korrecte::kube::ObjectRepository;
-use korrecte::linters::OneShotEvaluator;
 use korrecte::linters::LintCollection;
+use korrecte::linters::OneShotEvaluator;
 use korrecte::reporting::Reporter;
 use korrecte::reporting::SingleThreadedReporter;
 use korrecte::view::View;
-use clap::load_yaml;
-use clap::{App, ArgMatches};
 use std::borrow::Borrow;
 use std::fs::File;
 use std::io::prelude::*;
@@ -20,7 +22,7 @@ use toml;
 
 use crate::view::Cli;
 
-fn main() -> Result<(), KorrecteError> {
+fn main() -> Result<(), CliError> {
     let yaml = load_yaml!("../cli.yaml");
     let matches = App::from_yaml(yaml).get_matches();
 
@@ -45,12 +47,9 @@ fn build_object_repository(
     matches: &ArgMatches,
 ) -> Result<Box<dyn ObjectRepository>, KorrecteError> {
     match matches.value_of("source") {
-        Some("api") | None => {
-
-            Ok(Box::new(FrozenObjectRepository::from(
-                ApiObjectRepository::new()?,
-            )))
-        }
+        Some("api") | None => Ok(Box::new(FrozenObjectRepository::from(
+            ApiObjectRepository::new()?,
+        ))),
         Some("file") => {
             let path = matches
                 .value_of("path")
@@ -63,7 +62,7 @@ fn build_object_repository(
     }
 }
 
-fn load_config(path: &str) -> Result<Config, KorrecteError> {
+fn load_config(path: &str) -> Result<Config, CliError> {
     let mut file = File::open(path)?;
     let mut buffer = String::new();
     file.read_to_string(&mut buffer)?;

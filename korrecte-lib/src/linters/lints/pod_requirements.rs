@@ -120,7 +120,7 @@ mod tests {
 
     #[test]
     pub fn it_does_not_find_anything_on_properly_configured_pod() {
-        let findings = analyze_file(Path::new("tests/pod_requirements.yaml"));
+        let findings = analyze_file(Path::new("../tests/pod_requirements.yaml"));
         let findings = filter_findings_by(findings, &PodRequirements::spec());
 
         assert_eq!(0, findings.len());
@@ -128,7 +128,7 @@ mod tests {
 
     #[test]
     pub fn it_finds_pods_with_missing_requirements_or_limits() {
-        let findings = analyze_file(Path::new("tests/pod_requirements_ko.yaml"));
+        let findings = analyze_file(Path::new("../tests/pod_requirements_ko.yaml"));
         let findings = filter_findings_by(findings, &PodRequirements::spec());
 
         assert_eq!(8, findings.len());

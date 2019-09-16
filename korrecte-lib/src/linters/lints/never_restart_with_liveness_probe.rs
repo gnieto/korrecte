@@ -70,7 +70,7 @@ mod tests {
 
     #[test]
     fn it_finds_never_restart_errors() {
-        let findings = analyze_file(Path::new("tests/never_restart.yaml"));
+        let findings = analyze_file(Path::new("../tests/never_restart.yaml"));
         let findings = filter_findings_by(findings, &NeverRestartWithLivenessProbe::spec());
 
         assert_eq!(1, findings.len());

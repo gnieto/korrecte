@@ -1,6 +1,5 @@
 
 use kube::api::{Object, Reflector, KubeObject, Api};
-use kube::config::Configuration;
 use kube::client::APIClient;
 use kube::Result;
 use k8s_openapi::api::autoscaling;
@@ -10,7 +9,6 @@ use serde::de::DeserializeOwned;
 use crate::linters::KubeObjectType;
 use crate::kube::ObjectRepository;
 use ::kube::config as kube_config;
-use crate::error::KorrecteError;
 
 #[derive(Clone)]
 pub struct ApiObjectRepository {

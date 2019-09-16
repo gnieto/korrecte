@@ -52,7 +52,7 @@ mod test {
 
     #[test]
     pub fn it_detects_statefulset_with_graceperiod_zero() {
-        let findings = analyze_file(Path::new("tests/statefulset_graceperiod.yaml"));
+        let findings = analyze_file(Path::new("../tests/statefulset_graceperiod.yaml"));
         let findings = filter_findings_by(findings, &StatefulsetGracePeriodZero::spec());
 
         assert_eq!(1, findings.len());

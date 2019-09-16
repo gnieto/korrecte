@@ -113,7 +113,7 @@ mod tests {
 
     #[test]
     fn it_finds_never_restart_errors() {
-        let findings = analyze_file(Path::new("tests/overlapping_probes.yaml"));
+        let findings = analyze_file(Path::new("../tests/overlapping_probes.yaml"));
         let findings = filter_findings_by(findings, &OverlappingProbes::spec());
 
         assert_eq!(1, findings.len());

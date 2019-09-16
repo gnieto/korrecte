@@ -1,6 +1,6 @@
-use korrecte::view::View;
-use korrecte::reporting::Finding;
 use colored::*;
+use korrecte::reporting::Finding;
+use korrecte::view::View;
 
 pub struct Cli;
 
