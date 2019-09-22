@@ -1,7 +1,8 @@
+use k8s_openapi::api::apps;
+use k8s_openapi::api::autoscaling;
+use k8s_openapi::api::networking;
 use k8s_openapi::api::policy;
 use k8s_openapi::api::core;
-use k8s_openapi::api::autoscaling;
-use k8s_openapi::api::apps;
 use kube::api::Object;
 use crate::reporting::Reporter;
 use crate::error::KorrecteError;
@@ -16,6 +17,7 @@ pub trait Lint {
 	fn v1_stateful_set(&self, _stateful_set: &Object<apps::v1::StatefulSetSpec, apps::v1::StatefulSetStatus>, _reporter: &dyn Reporter)  {  }
 	fn v1beta1_pod_disruption_budget(&self, _pod_disruption_budget: &Object<policy::v1beta1::PodDisruptionBudgetSpec, policy::v1beta1::PodDisruptionBudgetStatus>, _reporter: &dyn Reporter)  {  }
 	fn v1_horizontal_pod_autoscaler(&self, _horizontal_pod_autoscaler: &Object<autoscaling::v1::HorizontalPodAutoscalerSpec, autoscaling::v1::HorizontalPodAutoscalerStatus>, _reporter: &dyn Reporter)  {  }
+	fn v1beta1_ingress(&self, _ingress: &Object<networking::v1beta1::IngressSpec, networking::v1beta1::IngressStatus>, _reporter: &dyn Reporter)  {  }
 
     fn object(&self, object: &KubeObjectType, reporter: &dyn Reporter) {
         match object {
@@ -28,6 +30,7 @@ pub trait Lint {
 			KubeObjectType::V1StatefulSet(ref o) => self.v1_stateful_set(o, reporter),
 			KubeObjectType::V1beta1PodDisruptionBudget(ref o) => self.v1beta1_pod_disruption_budget(o, reporter),
 			KubeObjectType::V1HorizontalPodAutoscaler(ref o) => self.v1_horizontal_pod_autoscaler(o, reporter),
+			KubeObjectType::V1beta1Ingress(ref o) => self.v1beta1_ingress(o, reporter),
         }
     }
 }
@@ -44,6 +47,7 @@ pub enum KubeObjectType {
 	V1StatefulSet(Box<Object<apps::v1::StatefulSetSpec, apps::v1::StatefulSetStatus>>), 
 	V1beta1PodDisruptionBudget(Box<Object<policy::v1beta1::PodDisruptionBudgetSpec, policy::v1beta1::PodDisruptionBudgetStatus>>), 
 	V1HorizontalPodAutoscaler(Box<Object<autoscaling::v1::HorizontalPodAutoscalerSpec, autoscaling::v1::HorizontalPodAutoscalerStatus>>), 
+	V1beta1Ingress(Box<Object<networking::v1beta1::IngressSpec, networking::v1beta1::IngressStatus>>), 
 
 }
 
@@ -119,6 +123,13 @@ impl KubeObjectType {
 					.map_err(|_| KorrecteError::FailedToLoadYamlFile)?;
 
 				Ok(KubeObjectType::V1HorizontalPodAutoscaler(object))
+			}
+
+            ("networking", "v1beta1", "Ingress") => {
+				let object = serde_yaml::from_str(yaml)
+					.map_err(|_| KorrecteError::FailedToLoadYamlFile)?;
+
+				Ok(KubeObjectType::V1beta1Ingress(object))
 			}
 			_ => Err(KorrecteError::YamlDecodeError {ty: ty.into(), version: version.into(), kind: kind.into()}),
 		}

@@ -19,6 +19,8 @@ fn main() {
         OpenapiResource::new("k8s_openapi::api::policy::v1beta1::PodDisruptionBudget", false),
 
         OpenapiResource::new("k8s_openapi::api::autoscaling::v1::HorizontalPodAutoscaler", true),
+
+        OpenapiResource::new("k8s_openapi::api::networking::v1beta1::Ingress", false),
     ];
 
     let lint = build_lint_trait(&specs);
@@ -166,7 +168,6 @@ fn build_kube_client(specs: &[OpenapiResource]) -> String {
     format!(
         r#"
 use kube::api::{{Object, Reflector, KubeObject, Api}};
-use kube::config::Configuration;
 use kube::client::APIClient;
 use kube::Result;
 {}
@@ -174,7 +175,6 @@ use serde::de::DeserializeOwned;
 use crate::linters::KubeObjectType;
 use crate::kube::ObjectRepository;
 use ::kube::config as kube_config;
-use crate::error::KorrecteError;
 
 #[derive(Clone)]
 pub struct ApiObjectRepository {{

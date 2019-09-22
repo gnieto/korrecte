@@ -2,8 +2,8 @@
 use kube::api::{Object, Reflector, KubeObject, Api};
 use kube::client::APIClient;
 use kube::Result;
-use k8s_openapi::api::autoscaling;
 use k8s_openapi::api::apps;
+use k8s_openapi::api::autoscaling;
 use k8s_openapi::api::core;
 use serde::de::DeserializeOwned;
 use crate::linters::KubeObjectType;
