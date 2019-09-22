@@ -5,8 +5,8 @@ use crate::linters;
 pub(crate) mod evaluator;
 mod lint;
 pub(crate) mod lints;
-pub use lint::{KubeObjectType, Lint};
 pub use evaluator::OneShotEvaluator;
+pub use lint::{KubeObjectType, Lint};
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub enum Group {
@@ -42,6 +42,8 @@ impl LintCollection {
         let statefulset_grace_period_zero =
             linters::lints::statefulset_grace_period_zero::StatefulsetGracePeriodZero::default();
         let pod_requirements = linters::lints::pod_requirements::PodRequirements::default();
+        let alb_ingress =
+            linters::lints::alb_ingress_instance::AlbIngressInstance::new(object_repository);
 
         vec![
             Box::new(required),
@@ -52,6 +54,7 @@ impl LintCollection {
             Box::new(pdb_min),
             Box::new(statefulset_grace_period_zero),
             Box::new(pod_requirements),
+            Box::new(alb_ingress),
         ]
     }
 }

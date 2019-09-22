@@ -1,0 +1,91 @@
+apiVersion: networking/v1beta1
+kind: Ingress
+metadata:
+  name: missconfigured-alb
+  annotations:
+    kubernetes.io/ingress.class: alb
+spec:
+  rules:
+    - host: domain.test
+      http:
+        paths:
+          - backend:
+              serviceName: service-cluster-ip
+              servicePort: 24322
+            path: /*
+    - host: anotherdomain.test
+      http:
+        paths:
+          - backend:
+              serviceName: service-node-port
+              servicePort: 24322
+            path: /*
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-node-port
+spec:
+  ports:
+    - name: http
+      port: 24322
+      protocol: TCP
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-cluster-ip
+spec:
+  ports:
+    - name: http
+      port: 24322
+      protocol: TCP
+  type: ClusterIP
+---
+apiVersion: networking/v1beta1
+kind: Ingress
+metadata:
+  name: nginx-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+    - host: domain.test
+      http:
+        paths:
+          - backend:
+              serviceName: service-cluster-ip
+              servicePort: 24322
+            path: /*
+    - host: anotherdomain.test
+      http:
+        paths:
+          - backend:
+              serviceName: service-node-port
+              servicePort: 24322
+            path: /*
+---
+apiVersion: networking/v1beta1
+kind: Ingress
+metadata:
+  name: missconfigured-alb-ip
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/target-type: "ip"
+spec:
+  rules:
+    - host: domain.test
+      http:
+        paths:
+          - backend:
+              serviceName: service-cluster-ip
+              servicePort: 24322
+            path: /*
+    - host: anotherdomain.test
+      http:
+        paths:
+          - backend:
+              serviceName: service-node-port
+              servicePort: 24322
+            path: /*
