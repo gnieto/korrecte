@@ -53,7 +53,7 @@ impl Lint for RequiredLabels {
             );
 
             let finding =
-                Finding::new(RequiredLabels::spec(), pod.metadata.clone()).with_metadata(metadata);
+                Finding::from_object_metadata(RequiredLabels::spec(), pod.metadata.clone()).with_metadata(metadata);
 
             reporter.report(finding);
         }

@@ -119,7 +119,7 @@ impl<'a> PdbMinReplicas<'a> {
             let deploy_replicas = d.spec.replicas.unwrap_or(0);
 
             if pdb_min_available >= deploy_replicas {
-                let finding = Finding::new(Self::spec(), pdb.metadata.clone())
+                let finding = Finding::from_object_metadata(Self::spec(), pdb.metadata.clone())
                     .add_metadata("deploy_replicas", deploy_replicas)
                     .add_metadata("pdb_min_available", pdb_min_available.to_string());
                 reporter.report(finding);
@@ -139,7 +139,7 @@ impl<'a> PdbMinReplicas<'a> {
             let hpa_replicas = d.spec.min_replicas.unwrap_or(0);
 
             if pdb_min_available >= hpa_replicas {
-                let finding = Finding::new(Self::spec(), pdb.metadata.clone())
+                let finding = Finding::from_object_metadata(Self::spec(), pdb.metadata.clone())
                     .add_metadata("hpa_replicas", hpa_replicas)
                     .add_metadata("pdb_min_available", pdb_min_available.to_string());
                 reporter.report(finding);

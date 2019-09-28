@@ -1,25 +1,18 @@
 use crate::config::Config;
 use crate::kube::ObjectRepository;
 use crate::linters;
+use serde::{Serialize, Deserialize};
+
+#[cfg(feature = "wasm")]
+mod wasm;
 
 pub(crate) mod evaluator;
 mod lint;
 pub(crate) mod lints;
 pub use lint::{KubeObjectType, Lint};
 pub use evaluator::OneShotEvaluator;
-
-#[derive(Clone, Eq, PartialEq, Debug)]
-pub enum Group {
-    Audit,
-    Configuration,
-    Security,
-}
-
-#[derive(Clone, Eq, PartialEq, Debug)]
-pub struct LintSpec {
-    pub group: Group,
-    pub name: String,
-}
+// TODO: Remove; Retrocompatibility
+pub use korrecte_shared::reporting::{Group, LintSpec};
 
 pub type LintList<'a> = Vec<Box<dyn Lint + 'a>>;
 

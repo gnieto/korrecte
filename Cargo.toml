@@ -4,4 +4,7 @@ members = [
     "korrecte-autogen",
     "korrecte-cli",
     "korrecte-lib",
+    "korrecte-shared",
+    "korrecte-wasm",
+    "korrecte-wasm-macro",
 ]

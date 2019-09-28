@@ -1,5 +1,5 @@
 [package]
-name = "korrecte-cli"
+name = "korrecte-wasm-macro"
 version = "0.1.0"
 authors = ["Guillem Nieto <gnieto.talo@gmail.com>"]
 edition = "2018"
@@ -7,8 +7,9 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = {version = "2.33", features = ["yaml"]}
-colored = "1.8.0"
-toml = "0.5"
+quote = "1.0.2"
+proc-macro2 = "1.0.4"
+syn = { version = "1.0.5", features = ["full"] }
 
-korrecte = { path = '../korrecte-lib', features = ["wasm"] }
+[lib]
+proc-macro = true

@@ -4,54 +4,12 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::rc::Rc;
+use serde::{Deserialize, Serialize};
+pub use korrecte_shared::reporting::Finding;
 
 pub trait Reporter {
     fn report(&self, finding: Finding);
     fn findings(&self) -> Vec<Finding>;
-}
-
-#[derive(Clone)]
-pub struct Finding {
-    spec: LintSpec,
-    object_metadata: ObjectMeta,
-    // TODO: Think about a better data structure
-    lint_metadata: HashMap<String, String>,
-}
-
-impl Finding {
-    pub fn new(spec: LintSpec, object_metadata: ObjectMeta) -> Self {
-        Finding {
-            spec,
-            object_metadata,
-            lint_metadata: HashMap::new(),
-        }
-    }
-
-    pub fn add_metadata<K: ToString, V: ToString>(mut self, key: K, value: V) -> Self {
-        self.lint_metadata
-            .insert(key.to_string(), value.to_string());
-        self
-    }
-
-    pub fn with_metadata(mut self, lint_meta: HashMap<String, String>) -> Self {
-        self.lint_metadata = lint_meta;
-        self
-    }
-
-    #[allow(unused)]
-    pub fn spec(&self) -> &LintSpec {
-        &self.spec
-    }
-
-    #[allow(unused)]
-    pub fn object_metadata(&self) -> &ObjectMeta {
-        &self.object_metadata
-    }
-
-    #[allow(unused)]
-    pub fn lint_metadata(&self) -> &HashMap<String, String> {
-        &self.lint_metadata
-    }
 }
 
 #[derive(Default, Clone)]

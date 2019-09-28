@@ -104,7 +104,7 @@ impl<'a> PodRequirementsVisitor<'a> {
     }
 
     fn missing_resource(&self, metadata: &ObjectMeta, container: &Container, key: &str) {
-        let finding = Finding::new(PodRequirements::spec(), metadata.clone())
+        let finding = Finding::from_object_metadata(PodRequirements::spec(), metadata.clone())
             .add_metadata(key, "")
             .add_metadata("container", container.name.clone());
 

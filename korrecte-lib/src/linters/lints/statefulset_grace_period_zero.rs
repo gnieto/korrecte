@@ -28,7 +28,7 @@ impl Lint for StatefulsetGracePeriodZero {
             let grace_period = spec.termination_grace_period_seconds.unwrap_or(1);
 
             if grace_period == 0 {
-                let finding = Finding::new(Self::spec(), stateful_set.meta().clone());
+                let finding = Finding::from_object_metadata(Self::spec(), stateful_set.meta().clone());
                 reporter.report(finding);
             }
         }

@@ -48,7 +48,7 @@ impl<'a> PodSpecVisitor for NeverRestartWithLivenessProbeVisitor<'a> {
             return;
         }
 
-        let finding = Finding::new(NeverRestartWithLivenessProbe::spec(), meta.clone());
+        let finding = Finding::from_object_metadata(NeverRestartWithLivenessProbe::spec(), meta.clone());
         self.reporter.report(finding);
     }
 }

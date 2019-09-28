@@ -54,7 +54,7 @@ impl<'a> OverlappingProbesVisitor<'a> {
                 let readiness_end = format!("{:?}", readiness.end);
                 let liveness_start = format!("{:?}", liveness.start);
 
-                let finding = Finding::new(OverlappingProbes::spec(), object_meta.clone())
+                let finding = Finding::from_object_metadata(OverlappingProbes::spec(), object_meta.clone())
                     .add_metadata("container".to_string(), c.name.clone())
                     .add_metadata("readiness_max_delay".to_string(), readiness_end)
                     .add_metadata("liveness_start".to_string(), liveness_start);

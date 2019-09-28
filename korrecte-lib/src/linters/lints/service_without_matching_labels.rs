@@ -50,7 +50,7 @@ impl<'a> Lint for ServiceWithoutMatchingLabels<'a> {
             });
 
         if !any_matching_pod {
-            let finding = Finding::new(Self::spec(), service.metadata.clone());
+            let finding = Finding::from_object_metadata(Self::spec(), service.metadata.clone());
             reporter.report(finding);
         }
     }

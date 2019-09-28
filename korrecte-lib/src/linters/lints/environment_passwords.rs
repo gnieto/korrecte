@@ -49,7 +49,7 @@ impl PodSpecVisitor for EnvironmentPasswordsVisitor<'_> {
             .collect();
 
         for environment_var in env_vars_with_secrets {
-            let finding = Finding::new(EnvironmentPasswords::spec(), meta.clone())
+            let finding = Finding::from_object_metadata(EnvironmentPasswords::spec(), meta.clone())
                 .add_metadata("environment_var".to_string(), environment_var.name.clone());
 
             self.reporter.report(finding)

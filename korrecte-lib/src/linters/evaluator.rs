@@ -1,5 +1,6 @@
 use crate::kube::ObjectRepository;
 use crate::linters::LintList;
+
 use crate::reporting::Reporter;
 
 pub struct OneShotEvaluator;
@@ -15,5 +16,13 @@ impl OneShotEvaluator {
                 lint.object(&object, reporter);
             }
         }
+
+
+        #[cfg(feature = "wasm")]
+        use crate::linters::wasm::evaluate;
+        #[cfg(feature = "wasm")]
+        let finding = evaluate();
+        #[cfg(feature = "wasm")]
+        reporter.report(finding);
     }
 }
