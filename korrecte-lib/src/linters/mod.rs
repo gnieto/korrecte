@@ -5,6 +5,8 @@ use serde::{Serialize, Deserialize};
 
 #[cfg(feature = "wasm")]
 mod wasm;
+#[cfg(feature = "wasm")]
+pub use wasm::WasmEvaluator;
 
 pub(crate) mod evaluator;
 mod lint;

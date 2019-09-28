@@ -35,10 +35,11 @@ fn handle_func(func: ItemFn) -> TokenStream {
         #[no_mangle]
         pub fn #shadows_ident(ptr: i32, len: u32) -> i32 {
             let value = unsafe {
-                ::std::slice::from_raw_parts(ptr as _, len as _)
+                let slice = ::std::slice::from_raw_parts(ptr as _, len as _);
+                String::from_utf8_lossy(slice)
             };
-            let arg = from_slice(value).expect("Failed to deserialize argument");
-            let ret = #ident(arg);
+
+            let ret = #ident(value);
             let bytes = to_string(&ret).expect("Failed to serialize return value");
             let len = bytes.len() as u32;
             unsafe {

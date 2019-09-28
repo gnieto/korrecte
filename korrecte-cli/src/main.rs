@@ -38,6 +38,9 @@ fn main() -> Result<(), CliError> {
     let list = LintCollection::all(cfg, &*object_repository);
     OneShotEvaluator::evaluate(&reporter, list, object_repository.borrow());
 
+    let wasm_evaluator = korrecte::linters::WasmEvaluator::new();
+    wasm_evaluator.evaluate(&reporter, object_repository.borrow());
+
     let cli = Cli {};
     cli.render(&reporter.findings());
     Ok(())

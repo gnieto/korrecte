@@ -16,13 +16,5 @@ impl OneShotEvaluator {
                 lint.object(&object, reporter);
             }
         }
-
-
-        #[cfg(feature = "wasm")]
-        use crate::linters::wasm::evaluate;
-        #[cfg(feature = "wasm")]
-        let finding = evaluate();
-        #[cfg(feature = "wasm")]
-        reporter.report(finding);
     }
 }
