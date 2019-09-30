@@ -8,7 +8,7 @@ use k8s_openapi::api::networking::v1beta1::{IngressSpec, IngressStatus};
 use kube::api::{KubeObject, Object};
 use std::collections::HashSet;
 
-/// **What it does:** Checks that all ALB ingresses are linked to service which have compatible types
+/// **What it does:** Checks that all ALB ingresses are linked to services which have compatible types
 /// with the ingress. When ingress is configures with target-type `instance`, only `NodePort` and `LoadBalancer`
 /// types are allowed; when is configured as `ip`, only `ClusterIP` services are allowed.
 ///
