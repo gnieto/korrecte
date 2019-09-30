@@ -9,8 +9,8 @@ use kube::api::{KubeObject, Object};
 use std::collections::HashSet;
 
 /// **What it does:** Checks that all ALB ingresses are linked to services which have compatible types
-/// with the ingress. When ingress is configures with target-type `instance`, only `NodePort` and `LoadBalancer`
-/// types are allowed; when is configured as `ip`, only `ClusterIP` services are allowed.
+/// with the ingress. When the ingress is configured with target-type `instance`, only `NodePort` and `LoadBalancer`
+/// types are allowed; when it's configured as `ip`, only `ClusterIP` services are allowed.
 ///
 /// **Why is this bad?** ALB ingress controller will fail to create the associated ALB if services
 /// have incompatible types.
@@ -60,7 +60,7 @@ impl<'a> AlbIngressInstance<'a> {
     fn spec() -> LintSpec {
         LintSpec {
             group: Group::Configuration,
-            name: "alb_ingress_controller_instance_missconfiguration".to_string(),
+            name: "alb_ingress_controller_instance_misconfiguration".to_string(),
         }
     }
 
