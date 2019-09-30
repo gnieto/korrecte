@@ -37,6 +37,7 @@ pub(crate) fn pod_spec_visit<V: PodSpecVisitor>(object: &KubeObjectType, visitor
         KubeObjectType::V1Node(_)
         | KubeObjectType::V1Service(_)
         | KubeObjectType::V1beta1PodDisruptionBudget(_)
-        | KubeObjectType::V1HorizontalPodAutoscaler(_) => {}
+        | KubeObjectType::V1HorizontalPodAutoscaler(_)
+        | KubeObjectType::V1beta1Ingress(_) => {}
     }
 }
