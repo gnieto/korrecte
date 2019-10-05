@@ -14,7 +14,8 @@ pub trait Reporter {
 #[derive(Clone, Serialize)]
 pub struct Finding {
     spec: LintSpec,
-    object_metadata: ObjectMeta,
+    name: String,
+    namespace: Option<String>,
     // TODO: Think about a better data structure
     lint_metadata: HashMap<String, String>,
 }
@@ -23,7 +24,8 @@ impl Finding {
     pub fn new(spec: LintSpec, object_metadata: ObjectMeta) -> Self {
         Finding {
             spec,
-            object_metadata,
+            name: object_metadata.name.clone(),
+            namespace: object_metadata.namespace.clone(),
             lint_metadata: HashMap::new(),
         }
     }
@@ -42,11 +44,6 @@ impl Finding {
     #[allow(unused)]
     pub fn spec(&self) -> &LintSpec {
         &self.spec
-    }
-
-    #[allow(unused)]
-    pub fn object_metadata(&self) -> &ObjectMeta {
-        &self.object_metadata
     }
 
     #[allow(unused)]
