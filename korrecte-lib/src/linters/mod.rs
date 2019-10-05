@@ -2,10 +2,9 @@ use crate::config::Config;
 use crate::kube::ObjectRepository;
 use crate::linters;
 
-pub(crate) mod evaluator;
+pub mod evaluator;
 mod lint;
 pub(crate) mod lints;
-pub use evaluator::OneShotEvaluator;
 pub use lint::{KubeObjectType, Lint};
 
 #[derive(Clone, Eq, PartialEq, Debug)]

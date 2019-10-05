@@ -1,13 +1,15 @@
 use crate::kube::ObjectRepository;
+use crate::linters::evaluator::Evaluator;
 use crate::linters::LintList;
 use crate::reporting::Reporter;
 
-pub struct OneShotEvaluator;
+pub struct SingleEvaluator;
 
-impl OneShotEvaluator {
-    pub fn evaluate(
+impl Evaluator for SingleEvaluator {
+    fn evaluate(
+        &self,
         reporter: &dyn Reporter,
-        list: LintList,
+        list: &LintList,
         object_repository: &dyn ObjectRepository,
     ) {
         for lint in list.iter() {

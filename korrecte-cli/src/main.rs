@@ -10,7 +10,6 @@ use korrecte::kube::api::{ApiObjectRepository, FrozenObjectRepository};
 use korrecte::kube::file::FileObjectRepository;
 use korrecte::kube::ObjectRepository;
 use korrecte::linters::LintCollection;
-use korrecte::linters::OneShotEvaluator;
 use korrecte::reporting::Reporter;
 use korrecte::reporting::SingleThreadedReporter;
 use korrecte::view::View;
@@ -21,6 +20,7 @@ use std::path::Path;
 use toml;
 
 use crate::view::Cli;
+use korrecte::linters::evaluator::{Evaluator, SingleEvaluator};
 
 fn main() -> Result<(), CliError> {
     let yaml = load_yaml!("../cli.yaml");
@@ -36,7 +36,9 @@ fn main() -> Result<(), CliError> {
     let object_repository = build_object_repository(&matches)?;
 
     let list = LintCollection::all(cfg, &*object_repository);
-    OneShotEvaluator::evaluate(&reporter, list, object_repository.borrow());
+
+    let evaluator = SingleEvaluator;
+    evaluator.evaluate(&reporter, &list, object_repository.borrow());
 
     let cli = Cli {};
     cli.render(&reporter.findings());

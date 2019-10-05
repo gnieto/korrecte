@@ -72,9 +72,7 @@ impl<'a> OpenapiResource<'a> {
         let mut split: Vec<&str> = self.resource.split("::").collect();
         split.reverse();
 
-        let object = split.get(0).unwrap().to_snake_case();
-
-        object
+        split.get(0).unwrap().to_snake_case()
     }
 
     pub fn spec(&self) -> String {
