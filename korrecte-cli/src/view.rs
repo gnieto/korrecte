@@ -1,11 +1,10 @@
 use colored::*;
 use korrecte::reporting::Finding;
-use korrecte::view::View;
 
 pub struct Cli;
 
-impl View for Cli {
-    fn render(&self, findings: &[Finding]) {
+impl Cli {
+    pub fn render(findings: &[Finding]) {
         for finding in findings {
             println!(
                 "{} on {} [{}]. Metadata: {:?}",

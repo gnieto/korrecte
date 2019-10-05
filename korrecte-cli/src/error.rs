@@ -1,14 +1,8 @@
 #[derive(Debug)]
 pub enum CliError {
-    ConfigLoadError,
+    MissingPath,
     KorrecteError(korrecte::error::KorrecteError),
     Io(std::io::Error),
-}
-
-impl From<toml::de::Error> for CliError {
-    fn from(_e: toml::de::Error) -> Self {
-        CliError::ConfigLoadError
-    }
 }
 
 impl From<korrecte::error::KorrecteError> for CliError {

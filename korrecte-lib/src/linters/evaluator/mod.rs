@@ -6,6 +6,7 @@ mod single_evaluator;
 
 pub use crate::linters::evaluator::single_evaluator::SingleEvaluator;
 
+#[allow(clippy::ptr_arg)]
 pub trait Evaluator {
     fn evaluate(
         &self,

@@ -1,9 +1,9 @@
 pub mod config;
 pub mod error;
+pub mod executor;
 pub mod kube;
 pub mod linters;
 pub mod reporting;
-pub mod view;
 
 mod visitor;
 
