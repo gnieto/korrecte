@@ -4,70 +4,40 @@ mod view;
 use crate::error::CliError;
 use clap::load_yaml;
 use clap::{App, ArgMatches};
-use korrecte::config::Config;
-use korrecte::error::KorrecteError;
-use korrecte::kube::api::{ApiObjectRepository, FrozenObjectRepository};
-use korrecte::kube::file::FileObjectRepository;
-use korrecte::kube::ObjectRepository;
-use korrecte::linters::LintCollection;
+use korrecte::executor::{ExecutionContextBuilder, ExecutionMode, Executor};
 use korrecte::reporting::Reporter;
-use korrecte::reporting::SingleThreadedReporter;
-use korrecte::view::View;
-use std::borrow::Borrow;
-use std::fs::File;
-use std::io::prelude::*;
 use std::path::Path;
-use toml;
 
 use crate::view::Cli;
-use korrecte::linters::evaluator::{Evaluator, SingleEvaluator};
 
 fn main() -> Result<(), CliError> {
     let yaml = load_yaml!("../cli.yaml");
     let matches = App::from_yaml(yaml).get_matches();
 
-    let cfg_path = matches.value_of("config").unwrap_or("korrecte.toml");
-    let cfg: Config = load_config(cfg_path).unwrap_or_else(|_| {
-        println!("Could not load config file");
-        Config::default()
-    });
+    let ctx = ExecutionContextBuilder::default()
+        .configuration_from_path(&Path::new(
+            matches.value_of("config").unwrap_or("korrecte.toml"),
+        ))
+        .unwrap()
+        .execution_mode(get_execution_mode(&matches).ok_or(CliError::MissingPath)?)
+        .build();
 
-    let reporter = SingleThreadedReporter::default();
-    let object_repository = build_object_repository(&matches)?;
+    let executor = Executor::with_context(ctx);
+    let reporter = executor.execute()?;
 
-    let list = LintCollection::all(cfg, &*object_repository);
+    Cli::render(&reporter.findings());
 
-    let evaluator = SingleEvaluator;
-    evaluator.evaluate(&reporter, &list, object_repository.borrow());
-
-    let cli = Cli {};
-    cli.render(&reporter.findings());
     Ok(())
 }
 
-fn build_object_repository(
-    matches: &ArgMatches,
-) -> Result<Box<dyn ObjectRepository>, KorrecteError> {
+fn get_execution_mode<'a>(matches: &'a ArgMatches) -> Option<ExecutionMode<'a>> {
     match matches.value_of("source") {
-        Some("api") | None => Ok(Box::new(FrozenObjectRepository::from(
-            ApiObjectRepository::new()?,
-        ))),
+        Some("api") | None => Some(ExecutionMode::Api),
         Some("file") => {
-            let path = matches
-                .value_of("path")
-                .ok_or_else(|| KorrecteError::Generic("Missing file path".into()))?;
-            Ok(Box::new(FileObjectRepository::new(Path::new(path))?))
+            let path = matches.value_of("path")?;
+
+            Some(ExecutionMode::FileSystem(Path::new(path)))
         }
-        _ => Err(KorrecteError::Generic(
-            "Could not build an object repository".into(),
-        )),
+        _ => None,
     }
-}
-
-fn load_config(path: &str) -> Result<Config, CliError> {
-    let mut file = File::open(path)?;
-    let mut buffer = String::new();
-    file.read_to_string(&mut buffer)?;
-
-    Ok(toml::from_str(&buffer)?)
 }

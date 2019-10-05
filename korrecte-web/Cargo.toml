@@ -1,5 +1,5 @@
 [package]
-name = "korrecte-cli"
+name = "korrecte-web"
 version = "0.1.0"
 authors = ["Guillem Nieto <gnieto.talo@gmail.com>"]
 edition = "2018"
@@ -7,7 +7,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = {version = "2.33", features = ["yaml"]}
-colored = "1.8.0"
-
-korrecte = { path = '../korrecte-lib' }
+korrecte = { path="../korrecte-lib" }
+gotham = "*"
+hyper = "*"
+mime = "*"
+serde_json = "*"

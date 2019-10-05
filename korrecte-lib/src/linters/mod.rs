@@ -1,20 +1,21 @@
 use crate::config::Config;
 use crate::kube::ObjectRepository;
 use crate::linters;
+use serde::Serialize;
 
 pub mod evaluator;
 mod lint;
 pub(crate) mod lints;
 pub use lint::{KubeObjectType, Lint};
 
-#[derive(Clone, Eq, PartialEq, Debug)]
+#[derive(Clone, Eq, PartialEq, Debug, Serialize)]
 pub enum Group {
     Audit,
     Configuration,
     Security,
 }
 
-#[derive(Clone, Eq, PartialEq, Debug)]
+#[derive(Clone, Eq, PartialEq, Debug, Serialize)]
 pub struct LintSpec {
     pub group: Group,
     pub name: String,

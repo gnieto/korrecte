@@ -1,5 +1,6 @@
 use crate::linters::LintSpec;
 use kube::api::ObjectMeta;
+use serde::Serialize;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -10,7 +11,7 @@ pub trait Reporter {
     fn findings(&self) -> Vec<Finding>;
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize)]
 pub struct Finding {
     spec: LintSpec,
     object_metadata: ObjectMeta,
