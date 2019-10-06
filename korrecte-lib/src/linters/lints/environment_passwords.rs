@@ -128,7 +128,7 @@ mod tests {
 
         let mut env_vars: Vec<String> = findings
             .into_iter()
-            .filter(|f| f.object_metadata().name == "hello-node-hardcoded-env-var")
+            .filter(|f| f.name() == "hello-node-hardcoded-env-var")
             .map(|f| f.lint_metadata().get("environment_var").unwrap().clone())
             .collect();
         env_vars.sort();
@@ -158,7 +158,7 @@ mod tests {
 
         let mut env_vars: Vec<String> = findings
             .into_iter()
-            .filter(|f| f.object_metadata().name == "hello-node-hardcoded-env-var")
+            .filter(|f| f.name() == "hello-node-hardcoded-env-var")
             .map(|f| f.lint_metadata().get("environment_var").unwrap().clone())
             .collect();
         env_vars.sort();

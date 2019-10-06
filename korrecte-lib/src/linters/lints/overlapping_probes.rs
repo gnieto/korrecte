@@ -117,6 +117,6 @@ mod tests {
         let findings = filter_findings_by(findings, &OverlappingProbes::spec());
 
         assert_eq!(1, findings.len());
-        assert_eq!(findings[0].object_metadata().name, "hello-node");
+        assert_eq!(findings[0].name(), "hello-node");
     }
 }

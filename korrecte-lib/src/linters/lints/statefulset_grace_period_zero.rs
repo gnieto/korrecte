@@ -57,6 +57,6 @@ mod test {
 
         assert_eq!(1, findings.len());
         assert_eq!(findings[0].spec().name, "statefulset_no_grace_period");
-        assert_eq!(findings[0].object_metadata().name, "web");
+        assert_eq!(findings[0].name(), "web");
     }
 }

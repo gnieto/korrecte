@@ -168,7 +168,7 @@ mod tests {
 
         assert_eq!(1, findings.len());
         assert_eq!(findings[0].spec().name, "pdb_min_replicas");
-        assert_eq!(findings[0].object_metadata().name, "missconfigured-pdb");
+        assert_eq!(findings[0].name(), "missconfigured-pdb");
     }
 
     #[test]
@@ -186,7 +186,7 @@ mod tests {
 
         assert_eq!(1, findings.len());
         assert_eq!(findings[0].spec().name, "pdb_min_replicas");
-        assert_eq!(findings[0].object_metadata().name, "pdb-hpa-missconfigured");
+        assert_eq!(findings[0].name(), "pdb-hpa-missconfigured");
     }
 
     #[test]

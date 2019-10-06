@@ -50,6 +50,16 @@ impl Finding {
     pub fn lint_metadata(&self) -> &HashMap<String, String> {
         &self.lint_metadata
     }
+
+    #[allow(unused)]
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
+    #[allow(unused)]
+    pub fn namespace(&self) -> &Option<String> {
+        &self.namespace
+    }
 }
 
 #[derive(Default, Clone)]

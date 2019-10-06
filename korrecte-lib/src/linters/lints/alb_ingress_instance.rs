@@ -170,13 +170,13 @@ mod tests {
         let findings = filter_findings_by(findings, &AlbIngressInstance::spec());
 
         assert_eq!(2, findings.len());
-        assert_eq!(findings[0].object_metadata().name, "missconfigured-alb");
+        assert_eq!(findings[0].name(), "missconfigured-alb");
         assert_eq!(
             findings[0].lint_metadata().get("service").unwrap(),
             "service-cluster-ip"
         );
 
-        assert_eq!(findings[1].object_metadata().name, "missconfigured-alb-ip");
+        assert_eq!(findings[1].name(), "missconfigured-alb-ip");
         assert_eq!(
             findings[1].lint_metadata().get("service").unwrap(),
             "service-node-port"

@@ -9,10 +9,9 @@ impl Cli {
             println!(
                 "{} on {} [{}]. Metadata: {:?}",
                 finding.spec().name.bold(),
-                finding.object_metadata().name.green(),
+                finding.name().green(),
                 finding
-                    .object_metadata()
-                    .namespace
+                    .namespace()
                     .as_ref()
                     .unwrap_or(&"default".to_string())
                     .blue(),
