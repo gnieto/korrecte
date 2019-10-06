@@ -28,7 +28,7 @@ pub struct ApiObjectRepository {
 
 impl ApiObjectRepository {
     pub fn new() -> Result<Self> {
-        let kube_config = kube_config::load_kube_config()?;
+        let kube_config = kube_config::load_kube_config().or(kube_config::incluster_config())?;
         let client = APIClient::new(kube_config);
 
         Ok(ApiObjectRepository {
