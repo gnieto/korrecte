@@ -1,11 +1,11 @@
 use crate::linters::{Group, KubeObjectType, Lint, LintSpec};
 
+use crate::linters::evaluator::Context;
 use crate::reporting::Finding;
-use crate::reporting::Reporter;
 use crate::visitor::{pod_spec_visit, PodSpecVisitor};
 use k8s_openapi::api::core::v1::PodSpec;
 use k8s_openapi::api::core::v1::{Container, EnvVar};
-use kube::api::ObjectMeta;
+use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use serde::Deserialize;
 
 /// **What it does:** Finds passwords or keys on object manifests.
@@ -23,9 +23,9 @@ pub(crate) struct EnvironmentPasswords {
 }
 
 impl Lint for EnvironmentPasswords {
-    fn object(&self, object: &KubeObjectType, reporter: &dyn Reporter) {
+    fn object(&self, object: &KubeObjectType, context: &Context) {
         let mut visitor = EnvironmentPasswordsVisitor {
-            reporter,
+            context: &context,
             config: &self.config,
         };
         pod_spec_visit(&object, &mut visitor);
@@ -33,12 +33,12 @@ impl Lint for EnvironmentPasswords {
 }
 
 struct EnvironmentPasswordsVisitor<'a> {
-    reporter: &'a dyn Reporter,
+    context: &'a Context<'a>,
     config: &'a Config,
 }
 
 impl PodSpecVisitor for EnvironmentPasswordsVisitor<'_> {
-    fn visit_pod_spec(&mut self, pod_spec: &PodSpec, meta: &ObjectMeta) {
+    fn visit_pod_spec(&mut self, pod_spec: &PodSpec, meta: Option<&ObjectMeta>) {
         let env_vars_with_secrets: Vec<&EnvVar> = pod_spec
             .containers
             .iter()
@@ -49,10 +49,10 @@ impl PodSpecVisitor for EnvironmentPasswordsVisitor<'_> {
             .collect();
 
         for environment_var in env_vars_with_secrets {
-            let finding = Finding::new(EnvironmentPasswords::spec(), meta.clone())
+            let finding = Finding::new(EnvironmentPasswords::spec(), meta.cloned())
                 .add_metadata("environment_var".to_string(), environment_var.name.clone());
 
-            self.reporter.report(finding)
+            self.context.reporter.report(finding)
         }
     }
 }

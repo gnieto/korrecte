@@ -10,7 +10,7 @@ use std::path::Path;
 pub fn analyze_file_cfg(path: &Path, config: Config) -> Vec<Finding> {
     let reporter = SingleThreadedReporter::default();
     let repository: Box<dyn ObjectRepository> = Box::new(FileObjectRepository::new(path).unwrap());
-    let ll = LintCollection::all(config, repository.borrow());
+    let ll = LintCollection::all(config);
 
     let evaluator = SingleEvaluator;
     evaluator.evaluate(&reporter, &ll, repository.borrow());

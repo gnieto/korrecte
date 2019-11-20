@@ -1,6 +1,7 @@
 use crate::config::Config;
 use crate::error::KorrecteError;
-use crate::kube::api::{ApiObjectRepository, FrozenObjectRepository};
+// use crate::kube::api::{ApiObjectRepository, FrozenObjectRepository};
+use crate::kube::api_async::FrozenObjectRepository;
 use crate::kube::file::FileObjectRepository;
 use crate::kube::ObjectRepository;
 use crate::linters::evaluator::{Evaluator, SingleEvaluator};
@@ -78,7 +79,7 @@ impl<'a> Executor<'a> {
     pub fn execute(self) -> Result<impl Reporter, KorrecteError> {
         let reporter = SingleThreadedReporter::default();
         let object_repository = self.load_object_repository()?;
-        let lints = LintCollection::all(self.context.configuration, &*object_repository);
+        let lints = LintCollection::all(self.context.configuration);
         let evaluator = SingleEvaluator;
         evaluator.evaluate(&reporter, &lints, &*object_repository);
 
@@ -87,11 +88,12 @@ impl<'a> Executor<'a> {
 
     fn load_object_repository(&self) -> Result<Box<dyn ObjectRepository>, KorrecteError> {
         match self.context.mode {
-            ExecutionMode::Api => Ok(Box::new(FrozenObjectRepository::from(
-                ApiObjectRepository::new()?,
-            ))),
             ExecutionMode::FileSystem(path) => {
                 Ok(Box::new(FileObjectRepository::new(Path::new(path))?))
+            }
+            ExecutionMode::Api => {
+                let api = crate::kube::api_async::ApiObjectRepository::new()?;
+                Ok(Box::new(FrozenObjectRepository::from(api)))
             }
         }
     }

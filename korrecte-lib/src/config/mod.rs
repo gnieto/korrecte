@@ -6,6 +6,7 @@ use serde::Deserialize;
 pub struct Config {
     #[serde(default)]
     pub(crate) required_labels: RequiredLabelsConfig,
+
     #[serde(default)]
     pub(crate) environment_passwords: EnvironmentPasswordsConfig,
 }

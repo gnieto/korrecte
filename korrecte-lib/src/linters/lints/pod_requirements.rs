@@ -1,11 +1,11 @@
 use crate::linters::{Group, KubeObjectType, Lint, LintSpec};
 
+use crate::linters::evaluator::Context;
 use crate::reporting::Finding;
-use crate::reporting::Reporter;
 use crate::visitor::{pod_spec_visit, PodSpecVisitor};
 use k8s_openapi::api::core::v1::Container;
 use k8s_openapi::api::core::v1::PodSpec;
-use kube::api::ObjectMeta;
+use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use std::collections::BTreeMap;
 
 /// **What it does:** Checks for pods without resource limits
@@ -22,8 +22,8 @@ use std::collections::BTreeMap;
 pub(crate) struct PodRequirements;
 
 impl Lint for PodRequirements {
-    fn object(&self, object: &KubeObjectType, reporter: &dyn Reporter) {
-        let mut visitor = PodRequirementsVisitor { reporter };
+    fn object(&self, object: &KubeObjectType, context: &Context) {
+        let mut visitor = PodRequirementsVisitor { context };
         pod_spec_visit(&object, &mut visitor);
     }
 }
@@ -38,23 +38,23 @@ impl PodRequirements {
 }
 
 struct PodRequirementsVisitor<'a> {
-    reporter: &'a dyn Reporter,
+    context: &'a Context<'a>,
 }
 
 impl<'a> PodSpecVisitor for PodRequirementsVisitor<'a> {
-    fn visit_pod_spec(&mut self, pod_spec: &PodSpec, meta: &ObjectMeta) {
+    fn visit_pod_spec(&mut self, pod_spec: &PodSpec, meta: Option<&ObjectMeta>) {
         self.check_pod_spec(pod_spec, meta);
     }
 }
 
 impl<'a> PodRequirementsVisitor<'a> {
-    fn check_pod_spec(&self, pod_spec: &PodSpec, metadata: &ObjectMeta) {
+    fn check_pod_spec(&self, pod_spec: &PodSpec, metadata: Option<&ObjectMeta>) {
         for container in pod_spec.containers.iter() {
             self.check_container(container, metadata);
         }
     }
 
-    fn check_container(&self, container: &Container, metadata: &ObjectMeta) {
+    fn check_container(&self, container: &Container, metadata: Option<&ObjectMeta>) {
         match container.resources {
             None => {
                 self.missing_cpu_limit(metadata, container);
@@ -87,28 +87,28 @@ impl<'a> PodRequirementsVisitor<'a> {
         }
     }
 
-    fn missing_cpu_limit(&self, metadata: &ObjectMeta, container: &Container) {
+    fn missing_cpu_limit(&self, metadata: Option<&ObjectMeta>, container: &Container) {
         self.missing_resource(metadata, container, "missing_cpu_limit");
     }
 
-    fn missing_mem_limit(&self, metadata: &ObjectMeta, container: &Container) {
+    fn missing_mem_limit(&self, metadata: Option<&ObjectMeta>, container: &Container) {
         self.missing_resource(metadata, container, "missing_mem_limit");
     }
 
-    fn missing_cpu_requirement(&self, metadata: &ObjectMeta, container: &Container) {
+    fn missing_cpu_requirement(&self, metadata: Option<&ObjectMeta>, container: &Container) {
         self.missing_resource(metadata, container, "missing_cpu_requirement");
     }
 
-    fn missing_mem_requirement(&self, metadata: &ObjectMeta, container: &Container) {
+    fn missing_mem_requirement(&self, metadata: Option<&ObjectMeta>, container: &Container) {
         self.missing_resource(metadata, container, "missing_mem_requirement");
     }
 
-    fn missing_resource(&self, metadata: &ObjectMeta, container: &Container, key: &str) {
-        let finding = Finding::new(PodRequirements::spec(), metadata.clone())
+    fn missing_resource(&self, metadata: Option<&ObjectMeta>, container: &Container, key: &str) {
+        let finding = Finding::new(PodRequirements::spec(), metadata.cloned())
             .add_metadata(key, "")
             .add_metadata("container", container.name.clone());
 
-        self.reporter.report(finding);
+        self.context.reporter.report(finding);
     }
 }
 

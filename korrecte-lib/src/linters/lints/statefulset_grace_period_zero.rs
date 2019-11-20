@@ -1,9 +1,9 @@
 use crate::linters::{Group, Lint, LintSpec};
 
+use crate::linters::evaluator::Context;
 use crate::reporting::Finding;
-use crate::reporting::Reporter;
-use k8s_openapi::api::apps::v1::{StatefulSetSpec, StatefulSetStatus};
-use kube::api::{KubeObject, Object};
+use crate::{f, m};
+use k8s_openapi::api::apps::v1::StatefulSet;
 
 /// **What it does:** Finds stateful sets which has a pod template with graceful period equals to zero
 ///
@@ -19,17 +19,15 @@ use kube::api::{KubeObject, Object};
 pub(crate) struct StatefulsetGracePeriodZero;
 
 impl Lint for StatefulsetGracePeriodZero {
-    fn v1_stateful_set(
-        &self,
-        stateful_set: &Object<StatefulSetSpec, StatefulSetStatus>,
-        reporter: &dyn Reporter,
-    ) {
-        if let Some(ref spec) = stateful_set.spec.template.spec {
-            let grace_period = spec.termination_grace_period_seconds.unwrap_or(1);
+    fn v1_stateful_set(&self, stateful_set: &StatefulSet, context: &Context) {
+        if let Some(ref spec) = m!(stateful_set.spec, template, spec) {
+            let grace_period = f!(spec, termination_grace_period_seconds)
+                .cloned()
+                .unwrap_or(1);
 
             if grace_period == 0 {
-                let finding = Finding::new(Self::spec(), stateful_set.meta().clone());
-                reporter.report(finding);
+                let finding = Finding::new(Self::spec(), stateful_set.metadata.clone());
+                context.reporter.report(finding);
             }
         }
     }

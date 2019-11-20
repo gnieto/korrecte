@@ -1,7 +1,7 @@
 use crate::linters::KubeObjectType;
-use kube::api::ObjectMeta;
+use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 
-pub mod api;
+pub mod api_async;
 pub mod file;
 
 #[allow(unused)]
@@ -22,7 +22,7 @@ impl From<String> for Identifier {
 impl From<ObjectMeta> for Identifier {
     fn from(meta: ObjectMeta) -> Self {
         Identifier {
-            name: meta.name,
+            name: meta.name.unwrap(),
             namespace: meta.namespace,
         }
     }
@@ -31,10 +31,10 @@ impl From<ObjectMeta> for Identifier {
 #[allow(unused)]
 impl Identifier {
     pub fn matches_with(&self, meta: &ObjectMeta) -> bool {
-        meta.name == self.name && meta.namespace == self.namespace
+        meta.name.as_ref().cloned().unwrap() == self.name && meta.namespace == self.namespace
     }
 }
 
 pub trait ObjectRepository {
-    fn all(&self) -> &Vec<KubeObjectType>;
+    fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = &'a KubeObjectType> + 'a>;
 }

@@ -1,15 +1,13 @@
 use crate::linters::{Group, KubeObjectType, Lint, LintSpec};
 
 use crate::kube::ObjectRepository;
+use crate::linters::evaluator::Context;
 use crate::reporting::Finding;
-use crate::reporting::Reporter;
-use k8s_openapi::api::apps::v1::{DeploymentSpec, DeploymentStatus};
-use k8s_openapi::api::autoscaling::v1::{
-    HorizontalPodAutoscalerSpec, HorizontalPodAutoscalerStatus,
-};
-use k8s_openapi::api::policy::v1beta1::{PodDisruptionBudgetSpec, PodDisruptionBudgetStatus};
+use crate::{f, m};
+use k8s_openapi::api::apps::v1::Deployment;
+use k8s_openapi::api::autoscaling::v1::HorizontalPodAutoscaler;
+use k8s_openapi::api::policy::v1beta1::PodDisruptionBudget;
 use k8s_openapi::apimachinery::pkg::util::intstr::IntOrString;
-use kube::api::Object;
 use std::borrow::Borrow;
 
 /// **What it does:** Checks that pod controllers associated to a pod disruption budget has at least one more replica
@@ -22,28 +20,18 @@ use std::borrow::Borrow;
 ///
 /// **References**
 /// - https://itnext.io/kubernetes-in-production-poddisruptionbudget-1380009aaede
-pub(crate) struct PdbMinReplicas<'a> {
-    object_repository: &'a dyn ObjectRepository,
-}
+pub(crate) struct PdbMinReplicas;
 
-impl<'a> Lint for PdbMinReplicas<'a> {
-    fn v1beta1_pod_disruption_budget(
-        &self,
-        pdb: &Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>,
-        reporter: &dyn Reporter,
-    ) {
+impl Lint for PdbMinReplicas {
+    fn v1beta1_pod_disruption_budget(&self, pdb: &PodDisruptionBudget, context: &Context) {
         if let Some(pdb_min_available) = Self::get_min_replicas(pdb) {
-            self.matching_deployments(pdb, reporter, pdb_min_available);
-            self.matching_hpas(pdb, reporter, pdb_min_available);
+            self.matching_deployments(pdb, context, pdb_min_available);
+            self.matching_hpas(pdb, context, pdb_min_available);
         }
     }
 }
 
-impl<'a> PdbMinReplicas<'a> {
-    pub fn new(object_repository: &'a dyn ObjectRepository) -> Self {
-        PdbMinReplicas { object_repository }
-    }
-
+impl PdbMinReplicas {
     fn spec() -> LintSpec {
         LintSpec {
             group: Group::Configuration,
@@ -51,22 +39,20 @@ impl<'a> PdbMinReplicas<'a> {
         }
     }
 
-    fn get_min_replicas(
-        pdb: &Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>,
-    ) -> Option<i32> {
-        if let Some(IntOrString::Int(amount)) = pdb.spec.max_unavailable {
-            return Some(amount);
+    fn get_min_replicas(pdb: &PodDisruptionBudget) -> Option<i32> {
+        if let Some(IntOrString::Int(amount)) = f!(pdb.spec, max_unavailable) {
+            return Some(*amount);
         }
 
         None
     }
 
-    fn find_matching_deployments(
-        &self,
-        pdb: &Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>,
-    ) -> Vec<&Object<DeploymentSpec, DeploymentStatus>> {
-        self.object_repository
-            .all()
+    fn find_matching_deployments<'a>(
+        &'a self,
+        object_repository: &'a dyn ObjectRepository,
+        pdb: &PodDisruptionBudget,
+    ) -> Vec<&'a Deployment> {
+        object_repository
             .iter()
             .filter_map(|o| match o {
                 KubeObjectType::V1Deployment(d) => Some(d),
@@ -77,22 +63,22 @@ impl<'a> PdbMinReplicas<'a> {
             .collect()
     }
 
-    fn find_matching_hpa(
-        &self,
-        pdb: &Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>,
-    ) -> Vec<&Object<HorizontalPodAutoscalerSpec, HorizontalPodAutoscalerStatus>> {
-        self.object_repository
-            .all()
+    fn find_matching_hpa<'a>(
+        &'a self,
+        object_repository: &'a dyn ObjectRepository,
+        pdb: &PodDisruptionBudget,
+    ) -> Vec<&'a HorizontalPodAutoscaler> {
+        object_repository
             .iter()
             .filter_map(|o| match o {
                 KubeObjectType::V1HorizontalPodAutoscaler(hpa) => Some(hpa),
                 _ => None,
             })
             .filter(|hpa| {
-                if &hpa.spec.scale_target_ref.kind == "Deployment" {
+                let kind = m!(hpa.spec, scale_target_ref, kind);
+                if let Some("Deployment") = kind.map(|r| r.as_str()) {
                     // Check if there's any target deployment which is targeted by the PDB
-                    self.object_repository
-                        .all()
+                    object_repository
                         .iter()
                         .filter_map(|object| match object {
                             KubeObjectType::V1Deployment(d) => Some(d),
@@ -109,49 +95,40 @@ impl<'a> PdbMinReplicas<'a> {
 
     fn matching_deployments(
         &self,
-        pdb: &Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>,
-        reporter: &dyn Reporter,
+        pdb: &PodDisruptionBudget,
+        context: &Context,
         pdb_min_available: i32,
     ) {
-        let matching_deployments = self.find_matching_deployments(pdb);
+        let matching_deployments = self.find_matching_deployments(context.repository, pdb);
 
         matching_deployments.iter().for_each(|d| {
-            let deploy_replicas = d.spec.replicas.unwrap_or(0);
+            let deploy_replicas = *f!(d.spec, replicas).unwrap_or(&0);
 
             if pdb_min_available >= deploy_replicas {
                 let finding = Finding::new(Self::spec(), pdb.metadata.clone())
                     .add_metadata("deploy_replicas", deploy_replicas)
                     .add_metadata("pdb_min_available", pdb_min_available.to_string());
-                reporter.report(finding);
+                context.reporter.report(finding);
             }
         })
     }
 
-    fn matching_hpas(
-        &self,
-        pdb: &Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>,
-        reporter: &dyn Reporter,
-        pdb_min_available: i32,
-    ) {
-        let matching_hpa = self.find_matching_hpa(pdb);
+    fn matching_hpas(&self, pdb: &PodDisruptionBudget, context: &Context, pdb_min_available: i32) {
+        let matching_hpa = self.find_matching_hpa(context.repository, pdb);
 
         matching_hpa.iter().for_each(|d| {
-            let hpa_replicas = d.spec.min_replicas.unwrap_or(0);
-
+            let hpa_replicas = *f!(d.spec, min_replicas).unwrap_or(&0);
             if pdb_min_available >= hpa_replicas {
                 let finding = Finding::new(Self::spec(), pdb.metadata.clone())
                     .add_metadata("hpa_replicas", hpa_replicas)
                     .add_metadata("pdb_min_available", pdb_min_available.to_string());
-                reporter.report(finding);
+                context.reporter.report(finding);
             }
         })
     }
 
-    fn deploy_matches_with_pdb(
-        pdb: &Object<PodDisruptionBudgetSpec, PodDisruptionBudgetStatus>,
-        deploy: &Object<DeploymentSpec, DeploymentStatus>,
-    ) -> bool {
-        Some(&deploy.spec.selector) == pdb.spec.selector.as_ref()
+    fn deploy_matches_with_pdb(pdb: &PodDisruptionBudget, deploy: &Deployment) -> bool {
+        f!(pdb.spec, selector) == m!(deploy.spec, selector)
     }
 }
 

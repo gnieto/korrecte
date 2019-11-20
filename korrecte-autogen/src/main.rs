@@ -1,32 +1,25 @@
 use inflector::Inflector;
-use std::collections::HashSet;
 use std::fs::File;
 use std::io::Write;
 
 fn main() {
     let specs = [
         //        "k8s_openapi::api::core::v1::NamespaceSpec",
-        OpenapiResource::new("k8s_openapi::api::core::v1::Node", true),
-        OpenapiResource::new("k8s_openapi::api::core::v1::Pod", true),
+        OpenapiResource::new("k8s_openapi::api::core::v1::Node"),
+        OpenapiResource::new("k8s_openapi::api::core::v1::Pod"),
         //        "k8s_openapi::api::core::v1::ReplicationControllerSpec",
-        OpenapiResource::new("k8s_openapi::api::core::v1::Service", true),
-        OpenapiResource::new("k8s_openapi::api::apps::v1::DaemonSet", true),
-        OpenapiResource::new("k8s_openapi::api::apps::v1::Deployment", true),
-        OpenapiResource::new("k8s_openapi::api::apps::v1::ReplicaSet", true),
-        OpenapiResource::new("k8s_openapi::api::apps::v1::StatefulSet", true),
-        OpenapiResource::new(
-            "k8s_openapi::api::policy::v1beta1::PodDisruptionBudget",
-            false,
-        ),
-        OpenapiResource::new(
-            "k8s_openapi::api::autoscaling::v1::HorizontalPodAutoscaler",
-            true,
-        ),
-        OpenapiResource::new("k8s_openapi::api::networking::v1beta1::Ingress", false),
+        OpenapiResource::new("k8s_openapi::api::core::v1::Service"),
+        OpenapiResource::new("k8s_openapi::api::apps::v1::DaemonSet"),
+        OpenapiResource::new("k8s_openapi::api::apps::v1::Deployment"),
+        OpenapiResource::new("k8s_openapi::api::apps::v1::ReplicaSet"),
+        OpenapiResource::new("k8s_openapi::api::apps::v1::StatefulSet"),
+        OpenapiResource::new("k8s_openapi::api::policy::v1beta1::PodDisruptionBudget"),
+        OpenapiResource::new("k8s_openapi::api::autoscaling::v1::HorizontalPodAutoscaler"),
+        OpenapiResource::new("k8s_openapi::api::networking::v1beta1::Ingress"),
     ];
 
     let lint = build_lint_trait(&specs);
-    let ns = build_imports(&specs);
+    let ns = build_imports();
     let enum_str = build_enum(&specs);
 
     let source = format!(
@@ -43,18 +36,17 @@ fn main() {
     write_to(&source.trim(), "../korrecte-lib/src/linters/lint.rs");
     write_to(
         &build_kube_client(&specs),
-        "../korrecte-lib/src/kube/api.rs",
+        "../korrecte-lib/src/kube/api_async.rs",
     )
 }
 
 struct OpenapiResource<'a> {
     resource: &'a str,
-    has_kube: bool,
 }
 
 impl<'a> OpenapiResource<'a> {
-    pub fn new(resource: &'a str, has_kube: bool) -> Self {
-        OpenapiResource { resource, has_kube }
+    pub fn new(resource: &'a str) -> Self {
+        OpenapiResource { resource }
     }
 
     pub fn variant(&self) -> String {
@@ -75,26 +67,8 @@ impl<'a> OpenapiResource<'a> {
         split.get(0).unwrap().to_snake_case()
     }
 
-    pub fn spec(&self) -> String {
-        let mut split: Vec<&str> = self.resource.split("::").collect();
-        split.reverse();
-
-        let object = split.get(0).unwrap();
-        let version = split.get(1).unwrap();
-        let ty = split.get(2).unwrap();
-
-        format!("{}::{}::{}Spec", ty, version, object)
-    }
-
-    pub fn status(&self) -> String {
-        let mut split: Vec<&str> = self.resource.split("::").collect();
-        split.reverse();
-
-        let object = split.get(0).unwrap();
-        let version = split.get(1).unwrap();
-        let ty = split.get(2).unwrap();
-
-        format!("{}::{}::{}Status", ty, version, object)
+    pub fn fqn(&self) -> &str {
+        self.resource
     }
 
     pub fn lint_name(&self) -> String {
@@ -106,125 +80,91 @@ impl<'a> OpenapiResource<'a> {
         format!("{}_{}", version, self.clean_name())
     }
 
-    pub fn api_name(&self) -> Option<String> {
-        if !self.has_kube {
-            return None;
-        }
-
-        let mut split: Vec<&str> = self.resource.split("::").collect();
-        split.reverse();
-
-        let object = split.get(0).unwrap();
-        let version = split.get(1).unwrap();
-
-        Some(format!("{}{}", version, object))
-    }
-
-    pub fn base_namespace(&self) -> String {
-        let split: Vec<&str> = self.resource.split("::").collect();
-        let count = split.len();
-
-        split[0..count - 2].join("::").to_string()
-    }
-
     pub fn parts(&self) -> (&str, &str, &str) {
         let mut split: Vec<&str> = self.resource.split("::").collect();
         split.reverse();
 
         let object = split.get(0).unwrap();
         let version = split.get(1).unwrap();
-        let ty = split.get(2).unwrap();
+        let mut ty = split.get(2).unwrap();
+
+        if ty == &"networking" {
+            ty = &"networking.k8s.io";
+        }
 
         (ty, object, version)
     }
 }
+
+fn build_async_requests(resource: &OpenapiResource) -> String {
+    return format!(r#"
+        let {var} = async {{
+            let pods = self.kubeclient.list::<{ty}>().await;
+
+            pods
+                .map(|list| list.items.into_iter().map(|p| KubeObjectType::{variant}(Box::new(p))).collect::<Vec<KubeObjectType>>())
+                .map_err(|e| ("{var}".to_string(), e))
+        }};
+        pin_mut!({var});
+        v.push({var});
+    "#, var = resource.clean_name(), ty = resource.fqn(), variant = resource.variant());
+}
+
 fn build_kube_client(specs: &[OpenapiResource]) -> String {
-    let mut fields = Vec::new();
-    let mut inits = Vec::new();
-    let mut caches = Vec::new();
-    let mut namespaces = HashSet::new();
+    let mut requests = Vec::new();
 
     for s in specs {
-        let maybe_api_name = s.api_name();
-        if maybe_api_name.is_none() {
-            continue;
-        }
-        let api_name = maybe_api_name.unwrap();
-
-        fields.push(format!(
-            "\t{}: Reflector<Object<{}, {}>>,",
-            s.clean_name(),
-            s.spec(),
-            s.status()
-        ));
-        inits.push(format!(
-            "\t\t\t{}: ApiObjectRepository::initialize_reflector(Api::{}(client.clone()))?,",
-            s.clean_name(),
-            api_name
-        ));
-
-        let cache = format!(
-            "\t\tobjects.extend(
-            api.{}.read()
-                    .unwrap()
-                    .iter()
-                    .map(|o| {{
-                        KubeObjectType::{}(Box::new(o.clone()))
-                    }})
-        );",
-            s.clean_name(),
-            s.variant()
-        );
-        caches.push(cache);
-        namespaces.insert(format!("use {};", s.base_namespace()));
+        requests.push(build_async_requests(s));
     }
 
-    let namespaces = namespaces
-        .iter()
-        .cloned()
-        .collect::<Vec<String>>()
-        .join("\n");
-
     format!(
-        r#"
-use kube::api::{{Object, Reflector, KubeObject, Api}};
-use kube::client::APIClient;
-use kube::Result;
-{}
-use serde::de::DeserializeOwned;
-use crate::linters::KubeObjectType;
+r#"use crate::linters::KubeObjectType;
 use crate::kube::ObjectRepository;
-use ::kube::config as kube_config;
+use kubeclient::KubeClient;
+use kubeclient::config::load_config;
+use futures::future::Future;
+use ::pin_utils::pin_mut;
+use std::pin::Pin;
+use kubeclient::KubernetesError;
+use crate::error::KorrecteError;
 
-#[derive(Clone)]
 pub struct ApiObjectRepository {{
-{}
+    kubeclient: KubeClient,
 }}
 
 impl ApiObjectRepository {{
-    pub fn new() -> Result<Self> {{
-        let kube_config = kube_config::load_kube_config()?;
-        let client = APIClient::new(kube_config);
+    pub fn new() -> Result<Self, KorrecteError> {{
+        let config = load_config()
+            .unwrap()
+            .resolve()
+            .unwrap();
+        let kubeclient = KubeClient::new(config).unwrap();
 
-        Ok(ApiObjectRepository {{
-{}
+        Ok(Self {{
+            kubeclient,
         }})
     }}
 
-    fn initialize_reflector<K: 'static + Send + Sync + Clone + DeserializeOwned + KubeObject>(api: Api<K>) -> Result<Reflector<K>> {{
-        let mut pod_reflect = Reflector::new(api);
-        pod_reflect = pod_reflect.init()?;
-        let pod_reflect_updater = pod_reflect.clone();
+    pub async fn load_all_objects(&self) -> Result<Vec<KubeObjectType>, ()> {{
+        let mut v: Vec<Pin<&mut dyn Future<Output = Result<Vec<KubeObjectType>, (String, KubernetesError)>>>> = Vec::new();
+        let mut objects = Vec::new();
 
-        std::thread::spawn(move || {{
-            loop {{
-                if let Err(e) = pod_reflect_updater.poll() {{
-                    println!("Error while updating pods: {{}}", e.to_string());
-                }}
+        {}
+
+        let a: Vec<Result<Vec<KubeObjectType>, (String, KubernetesError)>> = futures::future::join_all(v).await;
+
+        for r in a {{
+            if r.is_err() {{
+                let (ty, _) = r.err().unwrap();
+                println!("Found some error while loading {{}} from kubernetes", ty);
+                continue;
             }}
-        }});
 
-        Ok(pod_reflect)
+            let res = r.unwrap();
+            objects.extend(res);
+        }}
+
+        Ok(objects)
     }}
 }}
 
@@ -234,34 +174,27 @@ pub struct FrozenObjectRepository {{
 
 impl From<ApiObjectRepository> for FrozenObjectRepository {{
     fn from(api: ApiObjectRepository) -> Self {{
-        let mut objects = Vec::new();
-
-{}
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        let all_objects = rt.block_on(api.load_all_objects()).unwrap();
 
         FrozenObjectRepository {{
-            objects,
+            objects: all_objects,
         }}
     }}
 }}
 
 impl ObjectRepository for FrozenObjectRepository {{
-    fn all(&self) -> &Vec<KubeObjectType> {{
-        &self.objects
+    fn iter<'a>(&'a self) -> Box<dyn Iterator<Item=&'a KubeObjectType> + 'a> {{
+        Box::new(self.objects.iter())
     }}
 }}
 "#
-    , namespaces, fields.join("\n"), inits.join("\n"), caches.join("\n"))
+    , requests.join("\n"))
 }
 
-fn build_imports(specs: &[OpenapiResource]) -> String {
-    let distinct: HashSet<String> = specs
-        .iter()
-        .map(|resource| format!("use {};", resource.base_namespace()))
-        .collect();
-
-    let mut namespaces = distinct.iter().cloned().collect::<Vec<String>>();
-    namespaces.push("use kube::api::Object;".to_string());
-    namespaces.push("use crate::reporting::Reporter;".to_string());
+fn build_imports() -> String {
+    let mut namespaces = Vec::new();
+    namespaces.push("use crate::linters::evaluator::Context;".to_string());
     namespaces.push("use crate::error::KorrecteError;".to_string());
     namespaces.join("\n")
 }
@@ -271,17 +204,17 @@ fn build_lint_trait(specs: &[OpenapiResource]) -> String {
     let mut match_arm = Vec::new();
 
     for s in specs {
-        let struct_path = format!("Object<{}, {}>", s.spec(), s.status());
+        let struct_path = s.fqn();
 
         spec_str.push_str(&format!(
-            "\tfn {}(&self, _{}: &{}, _reporter: &dyn Reporter)  {{  }}\n",
+            "\tfn {}(&self, _{}: &{}, _context: &Context)  {{  }}\n",
             s.lint_name(),
             s.clean_name(),
             struct_path
         ));
 
         match_arm.push(format!(
-            "\t\t\tKubeObjectType::{}(ref o) => self.{}(o, reporter),",
+            "\t\t\tKubeObjectType::{}(ref o) => self.{}(o, context),",
             s.variant(),
             s.lint_name()
         ));
@@ -290,7 +223,7 @@ fn build_lint_trait(specs: &[OpenapiResource]) -> String {
     format!(
         "pub trait Lint {{
 {}
-    fn object(&self, object: &KubeObjectType, reporter: &dyn Reporter) {{
+    fn object(&self, object: &KubeObjectType, context: &Context) {{
         match object {{
 {}
         }}
@@ -306,7 +239,7 @@ fn build_enum(specs: &[OpenapiResource]) -> String {
     let mut match_arms = Vec::new();
 
     for s in specs {
-        let ty = format!("Object<{}, {}>", s.spec(), s.status());
+        let ty = s.fqn();
         variants.push_str(&format!("\t{}(Box<{}>), \n", s.variant(), ty));
         let parts = s.parts();
 
