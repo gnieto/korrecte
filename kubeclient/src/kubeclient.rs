@@ -1,6 +1,6 @@
 use crate::config::reqwest::reqwest_client;
 use crate::config::CurrentConfig;
-use crate::config::KubeClientError;
+use anyhow::{Context, Result};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ListMeta;
 use k8s_openapi::Resource;
 use reqwest::Client as ReqwestClient;
@@ -13,7 +13,7 @@ pub struct KubeClient {
 }
 
 impl KubeClient {
-    pub fn new(config: CurrentConfig) -> Result<KubeClient, KubeClientError> {
+    pub fn new(config: CurrentConfig) -> Result<KubeClient> {
         let client = reqwest_client(&config)?;
 
         let kube_client = Self { config, client };
@@ -22,32 +22,15 @@ impl KubeClient {
     }
 }
 
-#[derive(Debug)]
-pub struct KubernetesError;
-
-impl From<reqwest::Error> for KubernetesError {
-    fn from(_: reqwest::Error) -> Self {
-        KubernetesError
-    }
-}
-
-impl From<serde_json::error::Error> for KubernetesError {
-    fn from(_: serde_json::error::Error) -> Self {
-        KubernetesError
-    }
-}
-
 impl KubeClient {
-    pub async fn list<O: Object + DeserializeOwned>(
-        &self,
-    ) -> Result<ObjectList<O>, KubernetesError> {
+    pub async fn list<O: Object + DeserializeOwned>(&self) -> Result<ObjectList<O>> {
         let path = O::path(None);
 
         let response = self.client.get(&self.build_url(&path)).send().await?;
 
         let body = response.text().await?;
 
-        serde_json::from_str(&body).map_err(|_| KubernetesError)
+        serde_json::from_str(&body).context("Error deserializing response")
     }
 
     fn build_url(&self, path: &str) -> String {

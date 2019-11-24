@@ -1,7 +1,7 @@
-use crate::error::KorrecteError;
 use crate::kube::file::KubeObjectLoader;
 use crate::kube::ObjectRepository;
 use crate::linters::KubeObjectType;
+use anyhow::Result;
 use std::path::Path;
 
 pub struct FileObjectRepository {
@@ -9,9 +9,9 @@ pub struct FileObjectRepository {
 }
 
 impl FileObjectRepository {
-    pub fn new(path: &Path) -> Result<FileObjectRepository, KorrecteError> {
+    pub fn new(path: &Path) -> Result<FileObjectRepository> {
         let objects = if path.is_dir() {
-            let objects: Vec<Result<KubeObjectType, KorrecteError>> = path
+            let objects: Vec<Result<KubeObjectType>> = path
                 .read_dir()?
                 .map(|e| e.ok())
                 .filter(|entry| entry.is_some())

@@ -1,9 +1,9 @@
+use anyhow::{anyhow, Context, Result};
 use gotham::helpers::http::response::create_response;
 use gotham::router::builder::*;
 use gotham::router::Router;
 use gotham::state::State;
 use hyper::{Body, Response, StatusCode};
-use korrecte::error::KorrecteError;
 use korrecte::executor::{ExecutionContextBuilder, ExecutionMode, Executor};
 use korrecte::reporting::{Finding, Reporter};
 use std::path::Path;
@@ -25,37 +25,34 @@ pub fn ping_handler(state: State) -> (State, String) {
 }
 
 pub fn evaluator_handler(state: State) -> (State, Response<Body>) {
-    let execution_result = analyze_cluster();
-    let findings = serialize_findings(execution_result);
+    let result = inner_evaluator_handler();
 
-    match findings {
+    match result {
         Ok(findings) => ok_response(state, findings),
         Err(e) => error_response(state, e),
     }
 }
 
-fn analyze_cluster() -> Result<Vec<Finding>, KorrecteError> {
+fn inner_evaluator_handler() -> Result<String, anyhow::Error> {
+    let findings = analyze_cluster()?;
+    let findings_as_str = serde_json::to_string(&findings).context("Could not encode findings")?;
+
+    Ok(findings_as_str)
+}
+
+fn analyze_cluster() -> Result<Vec<Finding>, anyhow::Error> {
     let context = ExecutionContextBuilder::default()
         .configuration_from_path(Path::new("korrecte.toml"))
-        .map_err(|_| KorrecteError::Generic("Could not fing korrecte config file".to_string()))?
+        .map_err(|e| anyhow!("Could not find configuration file: {:?}", e))?
         .execution_mode(ExecutionMode::Api)
         .build();
 
     let executor = Executor::with_context(context);
 
-    // Spawn the executor on an ad-hoc thread to avoid `BlockingClientInFutureContext` error.
-    // This workaround can be removed when kube-rs will have an async client.
-    std::thread::spawn(|| executor.execute().map(|reporter| reporter.findings()))
-        .join()
-        .unwrap()
-}
-
-fn serialize_findings(
-    execution_result: Result<Vec<Finding>, KorrecteError>,
-) -> Result<String, KorrecteError> {
-    execution_result.and_then(|findings| {
-        serde_json::to_string(&findings).map_err(|e| KorrecteError::Generic(e.to_string()))
-    })
+    executor
+        .execute()
+        .map(|reporter| reporter.findings())
+        .map_err(|e| anyhow!("Errored while linting: {:?}", e))
 }
 
 fn ok_response(state: State, findings: String) -> (State, Response<Body>) {
@@ -64,12 +61,12 @@ fn ok_response(state: State, findings: String) -> (State, Response<Body>) {
     (state, response)
 }
 
-fn error_response(state: State, e: KorrecteError) -> (State, Response<Body>) {
+fn error_response(state: State, e: anyhow::Error) -> (State, Response<Body>) {
     let response = create_response(
         &state,
         StatusCode::INTERNAL_SERVER_ERROR,
         mime::TEXT_PLAIN,
-        e.to_string(),
+        format!("{:?}", e),
     );
 
     (state, response)

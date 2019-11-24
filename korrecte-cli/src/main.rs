@@ -1,7 +1,6 @@
-mod error;
 mod view;
 
-use crate::error::CliError;
+use anyhow::{anyhow, Result};
 use clap::load_yaml;
 use clap::{App, ArgMatches};
 use korrecte::executor::{ExecutionContextBuilder, ExecutionMode, Executor};
@@ -10,16 +9,17 @@ use std::path::Path;
 
 use crate::view::Cli;
 
-fn main() -> Result<(), CliError> {
+fn main() -> Result<()> {
     let yaml = load_yaml!("../cli.yaml");
     let matches = App::from_yaml(yaml).get_matches();
 
     let ctx = ExecutionContextBuilder::default()
         .configuration_from_path(&Path::new(
             matches.value_of("config").unwrap_or("korrecte.toml"),
-        ))
-        .unwrap()
-        .execution_mode(get_execution_mode(&matches).ok_or(CliError::MissingPath)?)
+        ))?
+        .execution_mode(
+            get_execution_mode(&matches).ok_or_else(|| anyhow!("Invalid execution mode"))?,
+        )
         .build();
 
     let executor = Executor::with_context(ctx);

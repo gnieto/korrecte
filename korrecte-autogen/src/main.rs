@@ -125,20 +125,20 @@ use kubeclient::config::load_config;
 use futures::future::Future;
 use ::pin_utils::pin_mut;
 use std::pin::Pin;
-use kubeclient::KubernetesError;
-use crate::error::KorrecteError;
+use anyhow::*;
 
 pub struct ApiObjectRepository {{
     kubeclient: KubeClient,
 }}
 
 impl ApiObjectRepository {{
-    pub fn new() -> Result<Self, KorrecteError> {{
+    pub fn new() -> Result<Self> {{
         let config = load_config()
-            .unwrap()
+            .with_context(|| "Could not load kubernetes config")?
             .resolve()
-            .unwrap();
-        let kubeclient = KubeClient::new(config).unwrap();
+            .with_context(|| "Could not select an appropiate cluster configuration")?;
+        let kubeclient = KubeClient::new(config)
+            .with_context(|| "Could not create a kubeclient with the given configuration".to_string())?;
 
         Ok(Self {{
             kubeclient,
@@ -146,12 +146,12 @@ impl ApiObjectRepository {{
     }}
 
     pub async fn load_all_objects(&self) -> Result<Vec<KubeObjectType>, ()> {{
-        let mut v: Vec<Pin<&mut dyn Future<Output = Result<Vec<KubeObjectType>, (String, KubernetesError)>>>> = Vec::new();
+        let mut v: Vec<Pin<&mut dyn Future<Output = Result<Vec<KubeObjectType>, (String, anyhow::Error)>>>> = Vec::new();
         let mut objects = Vec::new();
 
         {}
 
-        let a: Vec<Result<Vec<KubeObjectType>, (String, KubernetesError)>> = futures::future::join_all(v).await;
+        let a: Vec<Result<Vec<KubeObjectType>, (String, anyhow::Error)>> = futures::future::join_all(v).await;
 
         for r in a {{
             if r.is_err() {{
@@ -195,7 +195,7 @@ impl ObjectRepository for FrozenObjectRepository {{
 fn build_imports() -> String {
     let mut namespaces = Vec::new();
     namespaces.push("use crate::linters::evaluator::Context;".to_string());
-    namespaces.push("use crate::error::KorrecteError;".to_string());
+    namespaces.push("use anyhow::{Result, anyhow};".to_string());
     namespaces.join("\n")
 }
 
@@ -246,8 +246,7 @@ fn build_enum(specs: &[OpenapiResource]) -> String {
         let match_arm_str = format!(
             r##"
             ("{}", "{}", "{}") => {{
-				let object = serde_yaml::from_str(yaml)
-					.map_err(|_| KorrecteError::FailedToLoadYamlFile)?;
+				let object = serde_yaml::from_str(yaml)?;
 
 				Ok(KubeObjectType::{}(object))
 			}}"##,
@@ -267,7 +266,7 @@ pub enum KubeObjectType {{
 }}
 
 impl KubeObjectType {{
-	pub fn from_yaml(yaml: &str, api_version: &str, kind: &str) -> Result<KubeObjectType, KorrecteError> {{
+	pub fn from_yaml(yaml: &str, api_version: &str, kind: &str) -> Result<KubeObjectType, anyhow::Error> {{
 		let (ty, version) = if api_version.contains('/') {{
 			let mut parts = api_version.split('/');
 			(parts.next().unwrap(), parts.next().unwrap())
@@ -277,7 +276,7 @@ impl KubeObjectType {{
 
 		match (ty, version, kind) {{
 			{}
-			_ => Err(KorrecteError::YamlDecodeError {{ty: ty.into(), version: version.into(), kind: kind.into()}}),
+			_ => Err(anyhow!(\"Could not decode the given object type\"))
 		}}
 	}}
 }}

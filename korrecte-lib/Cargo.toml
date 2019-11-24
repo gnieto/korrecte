@@ -15,3 +15,5 @@ kubeclient = { path = "../kubeclient" }
 tokio = "0.2.0-alpha.6"
 futures = "0.3.1"
 pin-utils = "0.1.0-alpha.4"
+anyhow = "1.0"
+thiserror = "1.0"

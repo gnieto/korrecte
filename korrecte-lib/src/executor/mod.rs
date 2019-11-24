@@ -1,12 +1,11 @@
 use crate::config::Config;
-use crate::error::KorrecteError;
-// use crate::kube::api::{ApiObjectRepository, FrozenObjectRepository};
 use crate::kube::api_async::FrozenObjectRepository;
 use crate::kube::file::FileObjectRepository;
 use crate::kube::ObjectRepository;
 use crate::linters::evaluator::{Evaluator, SingleEvaluator};
 use crate::linters::LintCollection;
 use crate::reporting::{Reporter, SingleThreadedReporter};
+use anyhow::Result;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -29,10 +28,7 @@ pub struct ExecutionContextBuilder<'a> {
 }
 
 impl<'a> ExecutionContextBuilder<'a> {
-    pub fn configuration_from_path(
-        mut self,
-        path: &Path,
-    ) -> Result<ExecutionContextBuilder<'a>, ConfigError> {
+    pub fn configuration_from_path(mut self, path: &Path) -> Result<ExecutionContextBuilder<'a>> {
         let config = Self::load_config_from_filesystem(path)?;
         self.configuration = Some(config);
 
@@ -52,13 +48,12 @@ impl<'a> ExecutionContextBuilder<'a> {
         }
     }
 
-    fn load_config_from_filesystem(path: &Path) -> Result<Config, ConfigError> {
-        let mut file = File::open(path).map_err(|_| ConfigError::CouldNotLoadError)?;
+    fn load_config_from_filesystem(path: &Path) -> Result<Config> {
+        let mut file = File::open(path)?;
         let mut buffer = String::new();
-        file.read_to_string(&mut buffer)
-            .map_err(|_| ConfigError::CouldNotLoadError)?;
+        file.read_to_string(&mut buffer)?;
 
-        Ok(toml::from_str(&buffer).map_err(|_| ConfigError::CouldNotParseError)?)
+        Ok(toml::from_str(&buffer)?)
     }
 }
 
@@ -76,7 +71,7 @@ impl<'a> Executor<'a> {
         Executor { context }
     }
 
-    pub fn execute(self) -> Result<impl Reporter, KorrecteError> {
+    pub fn execute(self) -> Result<impl Reporter> {
         let reporter = SingleThreadedReporter::default();
         let object_repository = self.load_object_repository()?;
         let lints = LintCollection::all(self.context.configuration);
@@ -86,7 +81,7 @@ impl<'a> Executor<'a> {
         Ok(reporter)
     }
 
-    fn load_object_repository(&self) -> Result<Box<dyn ObjectRepository>, KorrecteError> {
+    fn load_object_repository(&self) -> Result<Box<dyn ObjectRepository>> {
         match self.context.mode {
             ExecutionMode::FileSystem(path) => {
                 Ok(Box::new(FileObjectRepository::new(Path::new(path))?))

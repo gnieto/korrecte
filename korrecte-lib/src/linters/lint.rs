@@ -1,5 +1,5 @@
-use crate::error::KorrecteError;
 use crate::linters::evaluator::Context;
+use anyhow::{anyhow, Result};
 
 pub trait Lint {
     fn v1_node(&self, _node: &k8s_openapi::api::core::v1::Node, _context: &Context) {}
@@ -87,7 +87,7 @@ impl KubeObjectType {
         yaml: &str,
         api_version: &str,
         kind: &str,
-    ) -> Result<KubeObjectType, KorrecteError> {
+    ) -> Result<KubeObjectType, anyhow::Error> {
         let (ty, version) = if api_version.contains('/') {
             let mut parts = api_version.split('/');
             (parts.next().unwrap(), parts.next().unwrap())
@@ -97,79 +97,65 @@ impl KubeObjectType {
 
         match (ty, version, kind) {
             ("core", "v1", "Node") => {
-                let object =
-                    serde_yaml::from_str(yaml).map_err(|_| KorrecteError::FailedToLoadYamlFile)?;
+                let object = serde_yaml::from_str(yaml)?;
 
                 Ok(KubeObjectType::V1Node(object))
             }
 
             ("core", "v1", "Pod") => {
-                let object =
-                    serde_yaml::from_str(yaml).map_err(|_| KorrecteError::FailedToLoadYamlFile)?;
+                let object = serde_yaml::from_str(yaml)?;
 
                 Ok(KubeObjectType::V1Pod(object))
             }
 
             ("core", "v1", "Service") => {
-                let object =
-                    serde_yaml::from_str(yaml).map_err(|_| KorrecteError::FailedToLoadYamlFile)?;
+                let object = serde_yaml::from_str(yaml)?;
 
                 Ok(KubeObjectType::V1Service(object))
             }
 
             ("apps", "v1", "DaemonSet") => {
-                let object =
-                    serde_yaml::from_str(yaml).map_err(|_| KorrecteError::FailedToLoadYamlFile)?;
+                let object = serde_yaml::from_str(yaml)?;
 
                 Ok(KubeObjectType::V1DaemonSet(object))
             }
 
             ("apps", "v1", "Deployment") => {
-                let object =
-                    serde_yaml::from_str(yaml).map_err(|_| KorrecteError::FailedToLoadYamlFile)?;
+                let object = serde_yaml::from_str(yaml)?;
 
                 Ok(KubeObjectType::V1Deployment(object))
             }
 
             ("apps", "v1", "ReplicaSet") => {
-                let object =
-                    serde_yaml::from_str(yaml).map_err(|_| KorrecteError::FailedToLoadYamlFile)?;
+                let object = serde_yaml::from_str(yaml)?;
 
                 Ok(KubeObjectType::V1ReplicaSet(object))
             }
 
             ("apps", "v1", "StatefulSet") => {
-                let object =
-                    serde_yaml::from_str(yaml).map_err(|_| KorrecteError::FailedToLoadYamlFile)?;
+                let object = serde_yaml::from_str(yaml)?;
 
                 Ok(KubeObjectType::V1StatefulSet(object))
             }
 
             ("policy", "v1beta1", "PodDisruptionBudget") => {
-                let object =
-                    serde_yaml::from_str(yaml).map_err(|_| KorrecteError::FailedToLoadYamlFile)?;
+                let object = serde_yaml::from_str(yaml)?;
 
                 Ok(KubeObjectType::V1beta1PodDisruptionBudget(object))
             }
 
             ("autoscaling", "v1", "HorizontalPodAutoscaler") => {
-                let object =
-                    serde_yaml::from_str(yaml).map_err(|_| KorrecteError::FailedToLoadYamlFile)?;
+                let object = serde_yaml::from_str(yaml)?;
 
                 Ok(KubeObjectType::V1HorizontalPodAutoscaler(object))
             }
 
             ("networking.k8s.io", "v1beta1", "Ingress") => {
-                let object =
-                    serde_yaml::from_str(yaml).map_err(|_| KorrecteError::FailedToLoadYamlFile)?;
+                let object = serde_yaml::from_str(yaml)?;
 
                 Ok(KubeObjectType::V1beta1Ingress(object))
             }
-            _ => Err(KorrecteError::YamlDecodeError {
-                ty: ty.into(),
-                version: version.into(),
-                kind: kind.into(),
-            }),
+            _ => Err(anyhow!("Could not decode the given object type")),
         }
     }
 }

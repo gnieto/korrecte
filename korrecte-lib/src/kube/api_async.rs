@@ -1,11 +1,10 @@
-use crate::error::KorrecteError;
 use crate::kube::ObjectRepository;
 use crate::linters::KubeObjectType;
 use ::pin_utils::pin_mut;
+use anyhow::*;
 use futures::future::Future;
 use kubeclient::config::load_config;
 use kubeclient::KubeClient;
-use kubeclient::KubernetesError;
 use std::pin::Pin;
 
 pub struct ApiObjectRepository {
@@ -13,16 +12,21 @@ pub struct ApiObjectRepository {
 }
 
 impl ApiObjectRepository {
-    pub fn new() -> Result<Self, KorrecteError> {
-        let config = load_config().unwrap().resolve().unwrap();
-        let kubeclient = KubeClient::new(config).unwrap();
+    pub fn new() -> Result<Self> {
+        let config = load_config()
+            .with_context(|| "Could not load kubernetes config")?
+            .resolve()
+            .with_context(|| "Could not select an appropiate cluster configuration")?;
+        let kubeclient = KubeClient::new(config).with_context(|| {
+            "Could not create a kubeclient with the given configuration".to_string()
+        })?;
 
         Ok(Self { kubeclient })
     }
 
     pub async fn load_all_objects(&self) -> Result<Vec<KubeObjectType>, ()> {
         let mut v: Vec<
-            Pin<&mut dyn Future<Output = Result<Vec<KubeObjectType>, (String, KubernetesError)>>>,
+            Pin<&mut dyn Future<Output = Result<Vec<KubeObjectType>, (String, anyhow::Error)>>>,
         > = Vec::new();
         let mut objects = Vec::new();
 
@@ -196,7 +200,7 @@ impl ApiObjectRepository {
         pin_mut!(ingress);
         v.push(ingress);
 
-        let a: Vec<Result<Vec<KubeObjectType>, (String, KubernetesError)>> =
+        let a: Vec<Result<Vec<KubeObjectType>, (String, anyhow::Error)>> =
             futures::future::join_all(v).await;
 
         for r in a {
