@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: korrecte
+  labels:
+    name: korrecte
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: korrecte
+  namespace: korrecte
+  labels:
+    app: korrecte
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: korrecte
+  template:
+    metadata:
+      namespace: korrecte
+      labels:
+        app: korrecte
+    spec:
+      serviceAccountName: korrecte-service-account
+      containers:
+        - name: korrecte
+          image: gniet/korrecte:beta8
+          env:
+            - name: RUST_BACKTRACE
+              value: "1"
+          command:
+            - /korrecte-web
+          imagePullPolicy: Always
+          resources:
+            requests:
+              memory: 100M
+              cpu: 50m
+            limits:
+              memory: 200M
+              cpu: 200m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: korrecte-svc
+  namespace: korrecte
+spec:
+  selector:
+    app: korrecte
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: korrecte-service-account
+  namespace: korrecte
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: korrecte-cluster-role-binding
+  namespace: korrecte
+roleRef:
+  kind: ClusterRole
+  name: korrecte-cluster-role
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: korrecte-service-account
+    namespace: korrecte
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: korrecte-cluster-role
+  namespace: korrecte
+rules:
+  - apiGroups: ["", "apps", "autoscaling"]
+    resources: ["nodes", "pods", "services", "daemonsets", "deployments", "replicasets", "statefulsets", "horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch"]
