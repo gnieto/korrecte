@@ -1,5 +1,5 @@
 use crate::linters::LintSpec;
-use kube::api::ObjectMeta;
+use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use serde::Serialize;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -21,11 +21,13 @@ pub struct Finding {
 }
 
 impl Finding {
-    pub fn new(spec: LintSpec, object_metadata: ObjectMeta) -> Self {
+    pub fn new(spec: LintSpec, object_metadata: Option<ObjectMeta>) -> Self {
+        let metadata = object_metadata.unwrap_or_default();
+
         Finding {
             spec,
-            name: object_metadata.name.clone(),
-            namespace: object_metadata.namespace.clone(),
+            name: metadata.name.unwrap_or_default().clone(),
+            namespace: metadata.namespace.clone(),
             lint_metadata: HashMap::new(),
         }
     }

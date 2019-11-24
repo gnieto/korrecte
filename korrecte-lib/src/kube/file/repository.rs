@@ -1,6 +1,7 @@
 use crate::error::KorrecteError;
 use crate::kube::file::KubeObjectLoader;
-use crate::kube::{KubeObjectType, ObjectRepository};
+use crate::kube::ObjectRepository;
+use crate::linters::KubeObjectType;
 use std::path::Path;
 
 pub struct FileObjectRepository {
@@ -50,7 +51,7 @@ impl FileObjectRepository {
 }
 
 impl ObjectRepository for FileObjectRepository {
-    fn all(&self) -> &Vec<KubeObjectType> {
-        &self.objects
+    fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = &'a KubeObjectType> + 'a> {
+        Box::new(self.objects.iter())
     }
 }

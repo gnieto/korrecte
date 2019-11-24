@@ -1,128 +1,85 @@
 use crate::error::KorrecteError;
-use crate::reporting::Reporter;
-use k8s_openapi::api::apps;
-use k8s_openapi::api::autoscaling;
-use k8s_openapi::api::core;
-use k8s_openapi::api::networking;
-use k8s_openapi::api::policy;
-use kube::api::Object;
+use crate::linters::evaluator::Context;
 
 pub trait Lint {
-    fn v1_node(
-        &self,
-        _node: &Object<core::v1::NodeSpec, core::v1::NodeStatus>,
-        _reporter: &dyn Reporter,
-    ) {
-    }
-    fn v1_pod(
-        &self,
-        _pod: &Object<core::v1::PodSpec, core::v1::PodStatus>,
-        _reporter: &dyn Reporter,
-    ) {
-    }
-    fn v1_service(
-        &self,
-        _service: &Object<core::v1::ServiceSpec, core::v1::ServiceStatus>,
-        _reporter: &dyn Reporter,
-    ) {
-    }
+    fn v1_node(&self, _node: &k8s_openapi::api::core::v1::Node, _context: &Context) {}
+    fn v1_pod(&self, _pod: &k8s_openapi::api::core::v1::Pod, _context: &Context) {}
+    fn v1_service(&self, _service: &k8s_openapi::api::core::v1::Service, _context: &Context) {}
     fn v1_daemon_set(
         &self,
-        _daemon_set: &Object<apps::v1::DaemonSetSpec, apps::v1::DaemonSetStatus>,
-        _reporter: &dyn Reporter,
+        _daemon_set: &k8s_openapi::api::apps::v1::DaemonSet,
+        _context: &Context,
     ) {
     }
     fn v1_deployment(
         &self,
-        _deployment: &Object<apps::v1::DeploymentSpec, apps::v1::DeploymentStatus>,
-        _reporter: &dyn Reporter,
+        _deployment: &k8s_openapi::api::apps::v1::Deployment,
+        _context: &Context,
     ) {
     }
     fn v1_replica_set(
         &self,
-        _replica_set: &Object<apps::v1::ReplicaSetSpec, apps::v1::ReplicaSetStatus>,
-        _reporter: &dyn Reporter,
+        _replica_set: &k8s_openapi::api::apps::v1::ReplicaSet,
+        _context: &Context,
     ) {
     }
     fn v1_stateful_set(
         &self,
-        _stateful_set: &Object<apps::v1::StatefulSetSpec, apps::v1::StatefulSetStatus>,
-        _reporter: &dyn Reporter,
+        _stateful_set: &k8s_openapi::api::apps::v1::StatefulSet,
+        _context: &Context,
     ) {
     }
     fn v1beta1_pod_disruption_budget(
         &self,
-        _pod_disruption_budget: &Object<
-            policy::v1beta1::PodDisruptionBudgetSpec,
-            policy::v1beta1::PodDisruptionBudgetStatus,
-        >,
-        _reporter: &dyn Reporter,
+        _pod_disruption_budget: &k8s_openapi::api::policy::v1beta1::PodDisruptionBudget,
+        _context: &Context,
     ) {
     }
     fn v1_horizontal_pod_autoscaler(
         &self,
-        _horizontal_pod_autoscaler: &Object<
-            autoscaling::v1::HorizontalPodAutoscalerSpec,
-            autoscaling::v1::HorizontalPodAutoscalerStatus,
-        >,
-        _reporter: &dyn Reporter,
+        _horizontal_pod_autoscaler: &k8s_openapi::api::autoscaling::v1::HorizontalPodAutoscaler,
+        _context: &Context,
     ) {
     }
     fn v1beta1_ingress(
         &self,
-        _ingress: &Object<networking::v1beta1::IngressSpec, networking::v1beta1::IngressStatus>,
-        _reporter: &dyn Reporter,
+        _ingress: &k8s_openapi::api::networking::v1beta1::Ingress,
+        _context: &Context,
     ) {
     }
 
-    fn object(&self, object: &KubeObjectType, reporter: &dyn Reporter) {
+    fn object(&self, object: &KubeObjectType, context: &Context) {
         match object {
-            KubeObjectType::V1Node(ref o) => self.v1_node(o, reporter),
-            KubeObjectType::V1Pod(ref o) => self.v1_pod(o, reporter),
-            KubeObjectType::V1Service(ref o) => self.v1_service(o, reporter),
-            KubeObjectType::V1DaemonSet(ref o) => self.v1_daemon_set(o, reporter),
-            KubeObjectType::V1Deployment(ref o) => self.v1_deployment(o, reporter),
-            KubeObjectType::V1ReplicaSet(ref o) => self.v1_replica_set(o, reporter),
-            KubeObjectType::V1StatefulSet(ref o) => self.v1_stateful_set(o, reporter),
+            KubeObjectType::V1Node(ref o) => self.v1_node(o, context),
+            KubeObjectType::V1Pod(ref o) => self.v1_pod(o, context),
+            KubeObjectType::V1Service(ref o) => self.v1_service(o, context),
+            KubeObjectType::V1DaemonSet(ref o) => self.v1_daemon_set(o, context),
+            KubeObjectType::V1Deployment(ref o) => self.v1_deployment(o, context),
+            KubeObjectType::V1ReplicaSet(ref o) => self.v1_replica_set(o, context),
+            KubeObjectType::V1StatefulSet(ref o) => self.v1_stateful_set(o, context),
             KubeObjectType::V1beta1PodDisruptionBudget(ref o) => {
-                self.v1beta1_pod_disruption_budget(o, reporter)
+                self.v1beta1_pod_disruption_budget(o, context)
             }
             KubeObjectType::V1HorizontalPodAutoscaler(ref o) => {
-                self.v1_horizontal_pod_autoscaler(o, reporter)
+                self.v1_horizontal_pod_autoscaler(o, context)
             }
-            KubeObjectType::V1beta1Ingress(ref o) => self.v1beta1_ingress(o, reporter),
+            KubeObjectType::V1beta1Ingress(ref o) => self.v1beta1_ingress(o, context),
         }
     }
 }
 
 #[allow(unused)]
 pub enum KubeObjectType {
-    V1Node(Box<Object<core::v1::NodeSpec, core::v1::NodeStatus>>),
-    V1Pod(Box<Object<core::v1::PodSpec, core::v1::PodStatus>>),
-    V1Service(Box<Object<core::v1::ServiceSpec, core::v1::ServiceStatus>>),
-    V1DaemonSet(Box<Object<apps::v1::DaemonSetSpec, apps::v1::DaemonSetStatus>>),
-    V1Deployment(Box<Object<apps::v1::DeploymentSpec, apps::v1::DeploymentStatus>>),
-    V1ReplicaSet(Box<Object<apps::v1::ReplicaSetSpec, apps::v1::ReplicaSetStatus>>),
-    V1StatefulSet(Box<Object<apps::v1::StatefulSetSpec, apps::v1::StatefulSetStatus>>),
-    V1beta1PodDisruptionBudget(
-        Box<
-            Object<
-                policy::v1beta1::PodDisruptionBudgetSpec,
-                policy::v1beta1::PodDisruptionBudgetStatus,
-            >,
-        >,
-    ),
-    V1HorizontalPodAutoscaler(
-        Box<
-            Object<
-                autoscaling::v1::HorizontalPodAutoscalerSpec,
-                autoscaling::v1::HorizontalPodAutoscalerStatus,
-            >,
-        >,
-    ),
-    V1beta1Ingress(
-        Box<Object<networking::v1beta1::IngressSpec, networking::v1beta1::IngressStatus>>,
-    ),
+    V1Node(Box<k8s_openapi::api::core::v1::Node>),
+    V1Pod(Box<k8s_openapi::api::core::v1::Pod>),
+    V1Service(Box<k8s_openapi::api::core::v1::Service>),
+    V1DaemonSet(Box<k8s_openapi::api::apps::v1::DaemonSet>),
+    V1Deployment(Box<k8s_openapi::api::apps::v1::Deployment>),
+    V1ReplicaSet(Box<k8s_openapi::api::apps::v1::ReplicaSet>),
+    V1StatefulSet(Box<k8s_openapi::api::apps::v1::StatefulSet>),
+    V1beta1PodDisruptionBudget(Box<k8s_openapi::api::policy::v1beta1::PodDisruptionBudget>),
+    V1HorizontalPodAutoscaler(Box<k8s_openapi::api::autoscaling::v1::HorizontalPodAutoscaler>),
+    V1beta1Ingress(Box<k8s_openapi::api::networking::v1beta1::Ingress>),
 }
 
 impl KubeObjectType {
@@ -202,7 +159,7 @@ impl KubeObjectType {
                 Ok(KubeObjectType::V1HorizontalPodAutoscaler(object))
             }
 
-            ("networking", "v1beta1", "Ingress") => {
+            ("networking.k8s.io", "v1beta1", "Ingress") => {
                 let object =
                     serde_yaml::from_str(yaml).map_err(|_| KorrecteError::FailedToLoadYamlFile)?;
 

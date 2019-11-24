@@ -1,17 +1,19 @@
 [package]
-name = "korrecte"
+name = "kubeclient"
 version = "0.1.0"
 authors = ["Guillem Nieto <gnieto.talo@gmail.com>"]
 edition = "2018"
 
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
 [dependencies]
 k8s-openapi = { version = "0.6.0", features = ["v1_16"], default-features = false }
+reqwest = "0.10.0-alpha.2"
+openssl = "0.10.12"
+failure = "*"
+base64 = "*"
+serde_json = "*"
+tokio = "0.2.0-alpha.6"
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8"
-serde_json = "1.0"
-yaml-rust = "0.4"
-toml = "0.5"
-kubeclient = { path = "../kubeclient" }
-tokio = "0.2.0-alpha.6"
-futures = "0.3.1"
-pin-utils = "0.1.0-alpha.4"
+dirs = "2.0"

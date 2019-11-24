@@ -1,10 +1,10 @@
 use crate::linters::{Group, KubeObjectType, Lint, LintSpec};
 
+use crate::linters::evaluator::Context;
 use crate::reporting::Finding;
-use crate::reporting::Reporter;
 use crate::visitor::{pod_spec_visit, PodSpecVisitor};
 use k8s_openapi::api::core::v1::{Container, PodSpec, Probe};
-use kube::api::ObjectMeta;
+use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use std::time::Duration;
 
 /// **What it does:** Finds pods which liveness probe *may* execute before all readiness probes has
@@ -26,26 +26,26 @@ use std::time::Duration;
 pub(crate) struct OverlappingProbes;
 
 impl Lint for OverlappingProbes {
-    fn object(&self, object: &KubeObjectType, reporter: &dyn Reporter) {
-        let mut visitor = OverlappingProbesVisitor { reporter };
+    fn object(&self, object: &KubeObjectType, context: &Context) {
+        let mut visitor = OverlappingProbesVisitor { context };
         pod_spec_visit(&object, &mut visitor);
     }
 }
 
 struct OverlappingProbesVisitor<'a> {
-    reporter: &'a dyn Reporter,
+    context: &'a Context<'a>,
 }
 
 impl<'a> PodSpecVisitor for OverlappingProbesVisitor<'a> {
-    fn visit_pod_spec(&mut self, pod_spec: &PodSpec, meta: &ObjectMeta) {
+    fn visit_pod_spec(&mut self, pod_spec: &PodSpec, meta: Option<&ObjectMeta>) {
         for c in pod_spec.containers.iter() {
-            self.check_container_probes(&c, &meta);
+            self.check_container_probes(&c, meta);
         }
     }
 }
 
 impl<'a> OverlappingProbesVisitor<'a> {
-    fn check_container_probes(&mut self, c: &Container, object_meta: &ObjectMeta) {
+    fn check_container_probes(&mut self, c: &Container, object_meta: Option<&ObjectMeta>) {
         let readiness_probe = c.readiness_probe.as_ref().map(Self::calculate_time_frame);
         let liveness_probes = c.liveness_probe.as_ref().map(Self::calculate_time_frame);
 
@@ -54,12 +54,12 @@ impl<'a> OverlappingProbesVisitor<'a> {
                 let readiness_end = format!("{:?}", readiness.end);
                 let liveness_start = format!("{:?}", liveness.start);
 
-                let finding = Finding::new(OverlappingProbes::spec(), object_meta.clone())
+                let finding = Finding::new(OverlappingProbes::spec(), object_meta.cloned())
                     .add_metadata("container".to_string(), c.name.clone())
                     .add_metadata("readiness_max_delay".to_string(), readiness_end)
                     .add_metadata("liveness_start".to_string(), liveness_start);
 
-                self.reporter.report(finding);
+                self.context.reporter.report(finding);
             }
         }
     }

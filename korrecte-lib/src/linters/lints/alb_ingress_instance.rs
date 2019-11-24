@@ -1,11 +1,10 @@
 use crate::linters::{Group, KubeObjectType, Lint, LintSpec};
 
-use crate::kube::ObjectRepository;
+use crate::f;
+use crate::linters::evaluator::Context;
 use crate::reporting::Finding;
-use crate::reporting::Reporter;
-use k8s_openapi::api::core::v1::{ServiceSpec, ServiceStatus};
-use k8s_openapi::api::networking::v1beta1::{IngressSpec, IngressStatus};
-use kube::api::{KubeObject, Object};
+use k8s_openapi::api::core::v1::Service;
+use k8s_openapi::api::networking::v1beta1::Ingress;
 use std::collections::HashSet;
 
 /// **What it does:** Checks that all ALB ingresses are linked to services which have compatible types
@@ -19,44 +18,35 @@ use std::collections::HashSet;
 ///
 /// **References**
 /// - https://kubernetes-sigs.github.io/aws-alb-ingress-controller/guide/ingress/annotation/#target-type
-pub(crate) struct AlbIngressInstance<'a> {
-    object_repository: &'a dyn ObjectRepository,
-}
 
-impl<'a> AlbIngressInstance<'a> {
-    pub fn new(object_repository: &'a dyn ObjectRepository) -> Self {
-        AlbIngressInstance { object_repository }
-    }
-}
+pub(crate) struct AlbIngressInstance;
 
-impl<'a> Lint for AlbIngressInstance<'a> {
-    fn v1beta1_ingress(
-        &self,
-        ingress: &Object<IngressSpec, IngressStatus>,
-        reporter: &dyn Reporter,
-    ) {
-        let metadata = &ingress.meta().annotations;
-        let is_alb_ingress = metadata
-            .get("kubernetes.io/ingress.class")
-            .map_or(false, |class| class == "alb");
+impl Lint for AlbIngressInstance {
+    fn v1beta1_ingress(&self, ingress: &Ingress, context: &Context) {
+        let is_alb_ingress = f!(ingress.metadata, annotations)
+            .and_then(|a| a.get("kubernetes.io/ingress.class"))
+            .map(|class| class == "alb")
+            .unwrap_or(false);
+
         if !is_alb_ingress {
             return;
         }
 
         let services = Self::extract_service_names(ingress);
         let ingress_type = IngressType::from(ingress);
-        let misconfigured_services = self.get_misconfigured_services(&ingress_type, services);
+        let misconfigured_services =
+            self.get_misconfigured_services(context, &ingress_type, services);
 
         for service in misconfigured_services {
-            let finding = Finding::new(Self::spec(), ingress.meta().clone())
-                .add_metadata("service", service.meta().name.clone());
+            let finding = Finding::new(Self::spec(), ingress.metadata.clone())
+                .add_metadata("service", f!(service.metadata, name).cloned().unwrap());
 
-            reporter.report(finding);
+            context.reporter.report(finding);
         }
     }
 }
 
-impl<'a> AlbIngressInstance<'a> {
+impl AlbIngressInstance {
     fn spec() -> LintSpec {
         LintSpec {
             group: Group::Configuration,
@@ -64,13 +54,14 @@ impl<'a> AlbIngressInstance<'a> {
         }
     }
 
-    fn get_misconfigured_services(
-        &self,
+    fn get_misconfigured_services<'a>(
+        &'a self,
+        context: &'a Context,
         ingress_type: &IngressType,
         service_names: HashSet<String>,
-    ) -> Vec<&Object<ServiceSpec, ServiceStatus>> {
-        self.object_repository
-            .all()
+    ) -> Vec<&'a Service> {
+        context
+            .repository
             .iter()
             .filter_map(Self::filter_service)
             .filter(|service| {
@@ -79,7 +70,7 @@ impl<'a> AlbIngressInstance<'a> {
             .collect()
     }
 
-    fn filter_service(object: &KubeObjectType) -> Option<&Object<ServiceSpec, ServiceStatus>> {
+    fn filter_service(object: &KubeObjectType) -> Option<&Service> {
         match object {
             KubeObjectType::V1Service(s) => Some(s),
             _ => None,
@@ -87,26 +78,25 @@ impl<'a> AlbIngressInstance<'a> {
     }
 
     fn is_service_missconfigured(
-        service: &Object<ServiceSpec, ServiceStatus>,
+        service: &Service,
         ingress_type: &IngressType,
         service_names: &HashSet<String>,
     ) -> bool {
         let default_service_type = "clusterip".to_string();
-
-        if !service_names.contains(&service.meta().name) {
+        let name = f!(service.metadata, name).unwrap();
+        if !service_names.contains(name) {
             return false;
         }
 
-        let service_type = service.spec.type_.as_ref().unwrap_or(&default_service_type);
+        let service_type = f!(service.spec, type_).unwrap_or(&default_service_type);
+
         !ingress_type.is_service_type_allowed(&service_type)
     }
 
-    fn extract_service_names(ingress: &Object<IngressSpec, IngressStatus>) -> HashSet<String> {
+    fn extract_service_names(ingress: &Ingress) -> HashSet<String> {
         let empty = Vec::new();
-        let services: HashSet<String> = ingress
-            .spec
-            .rules
-            .as_ref()
+
+        f!(ingress.spec, rules)
             .unwrap_or(&empty)
             .iter()
             .flat_map(|rule| {
@@ -117,9 +107,7 @@ impl<'a> AlbIngressInstance<'a> {
                         .collect()
                 })
             })
-            .collect();
-
-        services
+            .collect()
     }
 }
 
@@ -129,12 +117,10 @@ enum IngressType {
     Other,
 }
 
-impl From<&Object<IngressSpec, IngressStatus>> for IngressType {
-    fn from(ingress: &Object<IngressSpec, IngressStatus>) -> Self {
-        let target_type = ingress
-            .meta()
-            .annotations
-            .get("alb.ingress.kubernetes.io/target-type")
+impl From<&Ingress> for IngressType {
+    fn from(ingress: &Ingress) -> Self {
+        let target_type = f!(ingress.metadata, annotations)
+            .and_then(|a| a.get("alb.ingress.kubernetes.io/target-type"))
             .map(|target_type| target_type.as_str());
 
         match target_type {

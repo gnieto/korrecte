@@ -1,9 +1,9 @@
 use crate::linters::{Group, Lint, LintSpec};
 
+use crate::f;
+use crate::linters::evaluator::Context;
 use crate::reporting::Finding;
-use crate::reporting::Reporter;
-use k8s_openapi::api::core::v1::{PodSpec, PodStatus};
-use kube::api::Object;
+use k8s_openapi::api::core::v1::Pod;
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -34,8 +34,10 @@ impl RequiredLabels {
 }
 
 impl Lint for RequiredLabels {
-    fn v1_pod(&self, pod: &Object<PodSpec, PodStatus>, reporter: &dyn Reporter) {
-        let current_labels: Vec<String> = pod.metadata.labels.keys().cloned().collect();
+    fn v1_pod(&self, pod: &Pod, context: &Context) {
+        let current_labels: Vec<String> = f!(pod.metadata, labels)
+            .map(|labels| labels.keys().cloned().collect())
+            .unwrap_or_default();
 
         let missing_labels: Vec<String> = self
             .config
@@ -55,7 +57,7 @@ impl Lint for RequiredLabels {
             let finding =
                 Finding::new(RequiredLabels::spec(), pod.metadata.clone()).with_metadata(metadata);
 
-            reporter.report(finding);
+            context.reporter.report(finding);
         }
     }
 }

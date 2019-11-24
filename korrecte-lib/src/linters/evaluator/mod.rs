@@ -15,3 +15,8 @@ pub trait Evaluator {
         object_repository: &dyn ObjectRepository,
     );
 }
+
+pub struct Context<'a> {
+    pub repository: &'a dyn ObjectRepository,
+    pub reporter: &'a dyn Reporter,
+}

@@ -5,4 +5,5 @@ members = [
     "korrecte-cli",
     "korrecte-lib",
     "korrecte-web",
+    "kubeclient",
 ]

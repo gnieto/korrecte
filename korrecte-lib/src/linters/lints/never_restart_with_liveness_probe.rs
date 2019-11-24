@@ -1,10 +1,10 @@
 use crate::linters::{Group, KubeObjectType, Lint, LintSpec};
 
+use crate::linters::evaluator::Context;
 use crate::reporting::Finding;
-use crate::reporting::Reporter;
 use crate::visitor::{pod_spec_visit, PodSpecVisitor};
 use k8s_openapi::api::core::v1::PodSpec;
-use kube::api::ObjectMeta;
+use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 
 /// **What it does:** Finds pods which have a `Never` restart policy and have liveness probe set
 ///
@@ -19,18 +19,18 @@ use kube::api::ObjectMeta;
 pub(crate) struct NeverRestartWithLivenessProbe;
 
 impl Lint for NeverRestartWithLivenessProbe {
-    fn object(&self, object: &KubeObjectType, reporter: &dyn Reporter) {
-        let mut visitor = NeverRestartWithLivenessProbeVisitor { reporter };
+    fn object(&self, object: &KubeObjectType, context: &Context) {
+        let mut visitor = NeverRestartWithLivenessProbeVisitor { context };
         pod_spec_visit(&object, &mut visitor);
     }
 }
 
 struct NeverRestartWithLivenessProbeVisitor<'a> {
-    reporter: &'a dyn Reporter,
+    context: &'a Context<'a>,
 }
 
 impl<'a> PodSpecVisitor for NeverRestartWithLivenessProbeVisitor<'a> {
-    fn visit_pod_spec(&mut self, pod_spec: &PodSpec, meta: &ObjectMeta) {
+    fn visit_pod_spec(&mut self, pod_spec: &PodSpec, meta: Option<&ObjectMeta>) {
         let restart_policy: String = pod_spec
             .restart_policy
             .clone()
@@ -48,8 +48,8 @@ impl<'a> PodSpecVisitor for NeverRestartWithLivenessProbeVisitor<'a> {
             return;
         }
 
-        let finding = Finding::new(NeverRestartWithLivenessProbe::spec(), meta.clone());
-        self.reporter.report(finding);
+        let finding = Finding::new(NeverRestartWithLivenessProbe::spec(), meta.cloned());
+        self.context.reporter.report(finding);
     }
 }
 

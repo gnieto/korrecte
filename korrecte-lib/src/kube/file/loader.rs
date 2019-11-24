@@ -15,6 +15,9 @@ impl KubeObjectLoader {
 
         for yaml_object in decoded_yaml {
             let kube_object_type = Self::yaml_object_to_kube_object_type(&yaml_object);
+            if kube_object_type.is_err() {
+                dbg!(&yaml_object);
+            }
             output.push(kube_object_type);
         }
 
