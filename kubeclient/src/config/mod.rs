@@ -181,6 +181,13 @@ impl AuthInfo {
             .build("", "identity", &client_key, &x509)
             .context("Error building pkcs12")
     }
+
+    pub fn password(&self) -> String {
+        match &self.password {
+            Some(p) => p.clone(),
+            None => "".to_string(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -20,7 +20,7 @@ pub fn reqwest_client(config: &CurrentConfig) -> Result<Client> {
         let der = identity
             .to_der()
             .context("Identity file could not be casted to DER")?;
-        let id = Identity::from_pkcs12_der(der.as_ref(), "")
+        let id = Identity::from_pkcs12_der(der.as_ref(), &config.auth.password())
             .context("Identity data could not be interpreted as pkcs12")?;
 
         client_builder = client_builder.identity(id);
