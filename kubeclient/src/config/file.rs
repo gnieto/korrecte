@@ -1,10 +1,11 @@
 use anyhow::{anyhow, Context, Result};
+use base64;
 use std::fs::File;
 use std::io::Read;
 
-pub fn inline_or_file(inline: &Option<Vec<u8>>, path: &Option<String>) -> Result<Vec<u8>> {
+pub fn inline_or_file(inline: &Option<String>, path: &Option<String>) -> Result<Vec<u8>> {
     if let Some(data) = inline {
-        return Ok(data.clone());
+        return base64::decode(data).map_err(|e| e.into());
     }
 
     if let Some(path) = path {

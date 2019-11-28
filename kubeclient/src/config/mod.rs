@@ -127,7 +127,7 @@ pub struct Cluster {
     #[serde(default)]
     insecure_skip_tls_verify: bool,
     certificate_authority: Option<String>,
-    certificate_authority_data: Option<Vec<u8>>,
+    certificate_authority_data: Option<String>,
 }
 
 impl Cluster {
@@ -152,9 +152,9 @@ impl Cluster {
 #[serde(rename_all = "kebab-case")]
 pub struct AuthInfo {
     client_certificate: Option<String>,
-    client_certificate_data: Option<Vec<u8>>,
+    client_certificate_data: Option<String>,
     client_key: Option<String>,
-    client_key_data: Option<Vec<u8>>,
+    client_key_data: Option<String>,
     token: Option<String>,
     token_file: Option<String>,
     impersonate: Option<String>,
@@ -178,8 +178,15 @@ impl AuthInfo {
             .context("Identity private key could not be read")?;
 
         Pkcs12::builder()
-            .build("", "identity", &client_key, &x509)
+            .build(" ", "identity", &client_key, &x509)
             .context("Error building pkcs12")
+    }
+
+    pub fn password(&self) -> String {
+        match &self.password {
+            Some(p) => p.clone(),
+            None => "".to_string(),
+        }
     }
 }
 
