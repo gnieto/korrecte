@@ -13,7 +13,13 @@ pub mod file;
 pub mod reqwest;
 
 pub fn load_config() -> Result<Config> {
-    load_local_config().or_else(|_| load_incluster())
+    load_local_config().or_else(|local| {
+        if let Err(e) = local {
+            println!("Error: {}", e);
+        }
+
+        load_incluster()
+    })
 }
 
 pub fn load_incluster() -> Result<Config> {
