@@ -25,3 +25,14 @@ pub fn load_from_file(path: &str) -> Result<Vec<u8>> {
 
     Ok(contents)
 }
+
+pub fn load_file(path: &str) -> Result<String> {
+    let mut file =
+        File::open(path).with_context(|| format!("Requested file {} could not be opened", path))?;
+
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)
+        .with_context(|| format!("Requested file {} could not be read", path))?;
+
+    Ok(contents)
+}

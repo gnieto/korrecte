@@ -5,6 +5,7 @@ use anyhow::*;
 use futures::future::Future;
 use kubeclient::config::load_config;
 use kubeclient::KubeClient;
+use std::borrow::Borrow;
 use std::pin::Pin;
 
 pub struct ApiObjectRepository {
@@ -13,11 +14,9 @@ pub struct ApiObjectRepository {
 
 impl ApiObjectRepository {
     pub fn new() -> Result<Self> {
-        let config = load_config()
-            .with_context(|| "Could not load kubernetes config")?
-            .resolve()
-            .with_context(|| "Could not select an appropiate cluster configuration")?;
-        let kubeclient = KubeClient::new(config).with_context(|| {
+        let config = load_config().with_context(|| "Could not load kubernetes config")?;
+
+        let kubeclient = KubeClient::new(config.borrow()).with_context(|| {
             "Could not create a kubeclient with the given configuration".to_string()
         })?;
 
@@ -205,8 +204,11 @@ impl ApiObjectRepository {
 
         for r in a {
             if r.is_err() {
-                let (ty, _) = r.err().unwrap();
-                println!("Found some error while loading {} from kubernetes", ty);
+                let (ty, e) = r.err().unwrap();
+                println!(
+                    "Found some error while loading {} from kubernetes: {}",
+                    ty, e
+                );
                 continue;
             }
 
