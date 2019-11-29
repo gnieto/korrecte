@@ -9,29 +9,21 @@ use std::fs::File;
 use std::path::PathBuf;
 use thiserror::Error;
 
-pub mod file;
 pub mod reqwest;
+mod file;
+mod in_cluster;
+mod local;
 
-pub fn load_config() -> Result<Config> {
-    load_local_config().or_else(|_| load_incluster())
-}
+pub use local::load_local_config;
+pub use in_cluster::load_incluster;
+use crate::config::local::RemoteCluster;
 
-pub fn load_incluster() -> Result<Config> {
-    Err(anyhow!("In cluster config loading not yet implemented"))
-}
+pub fn load_config() -> Result<Box<dyn ClusterConfig>> {
+    if let Ok(remote) = load_local_config() {
+        return Ok(Box::new(remote));
+    }
 
-pub fn load_local_config() -> Result<Config> {
-    let path = get_local_config_path()?;
-    let file = File::open(&path).with_context(|| format!("File {:?} could not be opened", path))?;
-
-    serde_yaml::from_reader(file)
-        .with_context(|| format!("File {:?} does not contain a valid yaml file", path))
-}
-
-fn get_local_config_path() -> Result<PathBuf> {
-    dirs::home_dir()
-        .map(|h| h.join(".kube").join("config"))
-        .ok_or_else(|| anyhow!("Could not find .kube/config file"))
+    Err(anyhow!("blabla"))
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -48,20 +40,8 @@ pub struct Config {
     current_context: Option<String>,
 }
 
-#[derive(Debug, Error)]
-pub enum ResolutionError {
-    #[error("Missing current context")]
-    MissingCurrentContext,
-    #[error("Context {0} not found")]
-    MissingContext(String),
-    #[error("Cluster {0} not found")]
-    MissingCluster(String),
-    #[error("Auth {0} not found")]
-    MissingAuth(String),
-}
-
 impl Config {
-    pub fn resolve(&self) -> Result<CurrentConfig, ResolutionError> {
+    pub fn resolve(&self) -> Result<RemoteCluster, ResolutionError> {
         let current_context = self
             .current_context
             .as_ref()
@@ -76,11 +56,11 @@ impl Config {
             .find_auth(&context.auth_info)
             .ok_or_else(|| ResolutionError::MissingAuth(context.auth_info.to_string()))?;
 
-        let current_config = CurrentConfig {
-            cluster: cluster.clone(),
-            context: context.clone(),
-            auth: auth.clone(),
-        };
+        let current_config = RemoteCluster::new(
+            cluster.clone(),
+            context.clone(),
+            auth.clone(),
+        );
         Ok(current_config)
     }
 
@@ -106,11 +86,26 @@ impl Config {
     }
 }
 
-#[derive(Debug)]
-pub struct CurrentConfig {
-    pub cluster: Cluster,
-    pub context: Context,
-    pub auth: AuthInfo,
+
+pub trait ClusterConfig {
+    fn default_namespace(&self) -> Option<&String>;
+    fn base_uri(&self) -> &String;
+    fn token(&self) -> Option<&String>;
+    fn certificate_authority(&self) -> Result<Vec<u8>>;
+    fn skip_authority(&self) -> bool;
+    fn identity(&self) -> Option<Pkcs12>;
+}
+
+#[derive(Debug, Error)]
+pub enum ResolutionError {
+    #[error("Missing current context")]
+    MissingCurrentContext,
+    #[error("Context {0} not found")]
+    MissingContext(String),
+    #[error("Cluster {0} not found")]
+    MissingCluster(String),
+    #[error("Auth {0} not found")]
+    MissingAuth(String),
 }
 
 #[derive(Serialize, Deserialize, Debug)]
