@@ -10,6 +10,7 @@ use std::path::Path;
 use crate::view::Cli;
 
 fn main() -> Result<()> {
+    env_logger::init();
     let yaml = load_yaml!("../cli.yaml");
     let matches = App::from_yaml(yaml).get_matches();
 

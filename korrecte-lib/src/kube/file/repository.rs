@@ -32,11 +32,6 @@ impl FileObjectRepository {
             .into_iter()
             .filter_map(|object| {
                 if object.is_err() {
-                    println!(
-                        "Could not decode some of the objects on file: {} {:?}",
-                        path.display(),
-                        object.err().unwrap()
-                    );
                     return None;
                 }
 

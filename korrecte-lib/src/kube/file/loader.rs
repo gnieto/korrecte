@@ -3,6 +3,7 @@ use anyhow::{anyhow, Result};
 use std::fs;
 use std::path::Path;
 use yaml_rust::{Yaml, YamlEmitter, YamlLoader};
+use log::*;
 
 pub(crate) struct KubeObjectLoader;
 pub(crate) type LoadResult = Result<Vec<Result<KubeObjectType>>>;
@@ -14,8 +15,10 @@ impl KubeObjectLoader {
 
         for yaml_object in decoded_yaml {
             let kube_object_type = Self::yaml_object_to_kube_object_type(&yaml_object);
+            info!("Kubernetes object type could not be mapped");
+
             if kube_object_type.is_err() {
-                dbg!(&yaml_object);
+                trace!("{:?}", &yaml_object);
             }
             output.push(kube_object_type);
         }
