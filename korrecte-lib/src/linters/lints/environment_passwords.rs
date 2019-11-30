@@ -38,7 +38,7 @@ struct EnvironmentPasswordsVisitor<'a> {
 }
 
 impl PodSpecVisitor for EnvironmentPasswordsVisitor<'_> {
-    fn visit_pod_spec(&mut self, pod_spec: &PodSpec, meta: Option<&ObjectMeta>) {
+    fn visit_pod_spec(&mut self, pod_spec: &PodSpec, _: &ObjectMeta, meta: Option<&ObjectMeta>) {
         let env_vars_with_secrets: Vec<&EnvVar> = pod_spec
             .containers
             .iter()

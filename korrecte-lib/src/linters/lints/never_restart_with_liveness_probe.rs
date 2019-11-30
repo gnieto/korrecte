@@ -30,7 +30,7 @@ struct NeverRestartWithLivenessProbeVisitor<'a> {
 }
 
 impl<'a> PodSpecVisitor for NeverRestartWithLivenessProbeVisitor<'a> {
-    fn visit_pod_spec(&mut self, pod_spec: &PodSpec, meta: Option<&ObjectMeta>) {
+    fn visit_pod_spec(&mut self, pod_spec: &PodSpec, _: &ObjectMeta, meta: Option<&ObjectMeta>) {
         let restart_policy: String = pod_spec
             .restart_policy
             .clone()

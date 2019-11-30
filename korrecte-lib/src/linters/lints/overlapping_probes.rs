@@ -37,7 +37,7 @@ struct OverlappingProbesVisitor<'a> {
 }
 
 impl<'a> PodSpecVisitor for OverlappingProbesVisitor<'a> {
-    fn visit_pod_spec(&mut self, pod_spec: &PodSpec, meta: Option<&ObjectMeta>) {
+    fn visit_pod_spec(&mut self, pod_spec: &PodSpec, _: &ObjectMeta, meta: Option<&ObjectMeta>) {
         for c in pod_spec.containers.iter() {
             self.check_container_probes(&c, meta);
         }

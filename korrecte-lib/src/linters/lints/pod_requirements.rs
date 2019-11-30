@@ -42,7 +42,7 @@ struct PodRequirementsVisitor<'a> {
 }
 
 impl<'a> PodSpecVisitor for PodRequirementsVisitor<'a> {
-    fn visit_pod_spec(&mut self, pod_spec: &PodSpec, meta: Option<&ObjectMeta>) {
+    fn visit_pod_spec(&mut self, pod_spec: &PodSpec, _: &ObjectMeta, meta: Option<&ObjectMeta>) {
         self.check_pod_spec(pod_spec, meta);
     }
 }
