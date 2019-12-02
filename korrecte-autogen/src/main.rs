@@ -16,6 +16,8 @@ fn main() {
         OpenapiResource::new("k8s_openapi::api::policy::v1beta1::PodDisruptionBudget"),
         OpenapiResource::new("k8s_openapi::api::autoscaling::v1::HorizontalPodAutoscaler"),
         OpenapiResource::new("k8s_openapi::api::networking::v1beta1::Ingress"),
+        OpenapiResource::new("k8s_openapi::api::rbac::v1::ClusterRole"),
+        OpenapiResource::new("k8s_openapi::api::rbac::v1::Role"),
     ];
 
     let lint = build_lint_trait(&specs);
@@ -92,6 +94,10 @@ impl<'a> OpenapiResource<'a> {
             ty = &"networking.k8s.io";
         }
 
+        if ty == &"rbac" {
+            ty = &"rbac.authorization.k8s.io";
+        }
+
         (ty, object, version)
     }
 }
@@ -126,6 +132,7 @@ use futures::future::Future;
 use ::pin_utils::pin_mut;
 use std::pin::Pin;
 use anyhow::*;
+use std::borrow::Borrow;
 
 pub struct ApiObjectRepository {{
     kubeclient: KubeClient,
@@ -134,10 +141,8 @@ pub struct ApiObjectRepository {{
 impl ApiObjectRepository {{
     pub fn new() -> Result<Self> {{
         let config = load_config()
-            .with_context(|| "Could not load kubernetes config")?
-            .resolve()
-            .with_context(|| "Could not select an appropiate cluster configuration")?;
-        let kubeclient = KubeClient::new(config)
+            .with_context(|| "Could not load kubernetes config")?;
+        let kubeclient = KubeClient::new(config.borrow())
             .with_context(|| "Could not create a kubeclient with the given configuration".to_string())?;
 
         Ok(Self {{

@@ -1,0 +1,12 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: korrecte-role
+  namespace: korrecte
+rules:
+  - apiGroups: ["a", "apps", "autoscaling"]
+    resources: ["ingressess"]
+    verbs: ["get", "lust", "watch"]
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]

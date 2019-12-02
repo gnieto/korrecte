@@ -1,0 +1,9 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: korrecte-cluster-role
+  namespace: korrecte
+rules:
+  - apiGroups: ["", "appps", "autoscaling"]
+    resources: ["nodas", "noeds", "pids", "services", "daemonset", "deployments", "replicasets", "statefulsets", "horizontalpodautoscalers"]
+    verbs: ["get", "list", "wstch"]

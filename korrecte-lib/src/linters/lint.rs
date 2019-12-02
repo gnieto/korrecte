@@ -47,6 +47,13 @@ pub trait Lint {
         _context: &Context,
     ) {
     }
+    fn v1_cluster_role(
+        &self,
+        _cluster_role: &k8s_openapi::api::rbac::v1::ClusterRole,
+        _context: &Context,
+    ) {
+    }
+    fn v1_role(&self, _role: &k8s_openapi::api::rbac::v1::Role, _context: &Context) {}
 
     fn object(&self, object: &KubeObjectType, context: &Context) {
         match object {
@@ -64,6 +71,8 @@ pub trait Lint {
                 self.v1_horizontal_pod_autoscaler(o, context)
             }
             KubeObjectType::V1beta1Ingress(ref o) => self.v1beta1_ingress(o, context),
+            KubeObjectType::V1ClusterRole(ref o) => self.v1_cluster_role(o, context),
+            KubeObjectType::V1Role(ref o) => self.v1_role(o, context),
         }
     }
 }
@@ -80,6 +89,8 @@ pub enum KubeObjectType {
     V1beta1PodDisruptionBudget(Box<k8s_openapi::api::policy::v1beta1::PodDisruptionBudget>),
     V1HorizontalPodAutoscaler(Box<k8s_openapi::api::autoscaling::v1::HorizontalPodAutoscaler>),
     V1beta1Ingress(Box<k8s_openapi::api::networking::v1beta1::Ingress>),
+    V1ClusterRole(Box<k8s_openapi::api::rbac::v1::ClusterRole>),
+    V1Role(Box<k8s_openapi::api::rbac::v1::Role>),
 }
 
 impl KubeObjectType {
@@ -154,6 +165,18 @@ impl KubeObjectType {
                 let object = serde_yaml::from_str(yaml)?;
 
                 Ok(KubeObjectType::V1beta1Ingress(object))
+            }
+
+            ("rbac.authorization.k8s.io", "v1", "ClusterRole") => {
+                let object = serde_yaml::from_str(yaml)?;
+
+                Ok(KubeObjectType::V1ClusterRole(object))
+            }
+
+            ("rbac.authorization.k8s.io", "v1", "Role") => {
+                let object = serde_yaml::from_str(yaml)?;
+
+                Ok(KubeObjectType::V1Role(object))
             }
             _ => Err(anyhow!("Could not decode the given object type")),
         }

@@ -1,9 +1,9 @@
 use crate::linters::KubeObjectType;
 use anyhow::{anyhow, Result};
+use log::*;
 use std::fs;
 use std::path::Path;
 use yaml_rust::{Yaml, YamlEmitter, YamlLoader};
-use log::*;
 
 pub(crate) struct KubeObjectLoader;
 pub(crate) type LoadResult = Result<Vec<Result<KubeObjectType>>>;

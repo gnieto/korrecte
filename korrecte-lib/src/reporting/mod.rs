@@ -11,7 +11,7 @@ pub trait Reporter {
     fn findings(&self) -> Vec<Finding>;
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Debug)]
 pub struct Finding {
     spec: LintSpec,
     name: String,

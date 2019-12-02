@@ -15,7 +15,6 @@ pub struct ApiObjectRepository {
 impl ApiObjectRepository {
     pub fn new() -> Result<Self> {
         let config = load_config().with_context(|| "Could not load kubernetes config")?;
-
         let kubeclient = KubeClient::new(config.borrow()).with_context(|| {
             "Could not create a kubeclient with the given configuration".to_string()
         })?;
@@ -199,16 +198,47 @@ impl ApiObjectRepository {
         pin_mut!(ingress);
         v.push(ingress);
 
+        let cluster_role = async {
+            let pods = self
+                .kubeclient
+                .list::<k8s_openapi::api::rbac::v1::ClusterRole>()
+                .await;
+
+            pods.map(|list| {
+                list.items
+                    .into_iter()
+                    .map(|p| KubeObjectType::V1ClusterRole(Box::new(p)))
+                    .collect::<Vec<KubeObjectType>>()
+            })
+            .map_err(|e| ("cluster_role".to_string(), e))
+        };
+        pin_mut!(cluster_role);
+        v.push(cluster_role);
+
+        let role = async {
+            let pods = self
+                .kubeclient
+                .list::<k8s_openapi::api::rbac::v1::Role>()
+                .await;
+
+            pods.map(|list| {
+                list.items
+                    .into_iter()
+                    .map(|p| KubeObjectType::V1Role(Box::new(p)))
+                    .collect::<Vec<KubeObjectType>>()
+            })
+            .map_err(|e| ("role".to_string(), e))
+        };
+        pin_mut!(role);
+        v.push(role);
+
         let a: Vec<Result<Vec<KubeObjectType>, (String, anyhow::Error)>> =
             futures::future::join_all(v).await;
 
         for r in a {
             if r.is_err() {
-                let (ty, e) = r.err().unwrap();
-                println!(
-                    "Found some error while loading {} from kubernetes: {}",
-                    ty, e
-                );
+                let (ty, _) = r.err().unwrap();
+                println!("Found some error while loading {} from kubernetes", ty);
                 continue;
             }
 
