@@ -9,3 +9,108 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 9376
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: another-service
+spec:
+  selector:
+    app: AppOk
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9376
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: AppOk
+  name: app-ok
+  namespace: default
+spec:
+  containers: []
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: deploy-service
+spec:
+  selector:
+    app: AppDeploy
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9376
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-deploy
+  labels:
+    app: AppDeploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: AppDeploy
+  template:
+    metadata:
+      labels:
+        app: AppDeploy
+    spec:
+      containers:
+        - name: pdb
+          image: busybox
+          command:
+            - "sleep"
+            - "10000"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: multi-tag
+spec:
+  selector:
+    app: AppOk
+    secondary: label
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9376
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: AppOk
+    secondary: label
+  name: multi-tag
+  namespace: default
+spec:
+  containers: []
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: multi-tag-non-match
+spec:
+  selector:
+    app: AppOk
+    secondary: no-match
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9376
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: AppOk
+    secondary: disitnct-value
+  name: multi-tagno-match
+  namespace: default
+spec:
+  containers: []

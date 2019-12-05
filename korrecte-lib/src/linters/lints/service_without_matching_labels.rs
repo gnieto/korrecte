@@ -51,6 +51,12 @@ impl<'a> MatchingPodSpec<'a> {
 
 impl<'a> PodSpecVisitor for MatchingPodSpec<'a> {
     fn visit_pod_spec(&mut self, _: &PodSpec, pod_meta: &ObjectMeta, _: Option<&ObjectMeta>) {
+        if self.any_pod_matches {
+            // If we found any podspec which matches with the given labels, we do not need
+            // to do any further check
+            return;
+        }
+
         if let Some(pod_labels) = pod_meta.labels.as_ref() {
             self.any_pod_matches = self.selector.iter().all(|(k, v)| {
                 pod_labels
@@ -68,5 +74,22 @@ impl ServiceWithoutMatchingLabels {
             group: Group::Configuration,
             name: "service_without_matching_labels".to_string(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::linters::lints::service_without_matching_labels::ServiceWithoutMatchingLabels;
+    use crate::tests::{analyze_file, filter_findings_by};
+    use std::path::Path;
+
+    #[test]
+    fn it_finds_services_without_matching_labels() {
+        let findings = analyze_file(Path::new("../tests/service_without_matching_labels.yml"));
+        let findings = filter_findings_by(findings, &ServiceWithoutMatchingLabels::spec());
+
+        assert_eq!(2, findings.len());
+        assert_eq!("my-service", findings[0].name());
+        assert_eq!("multi-tag-non-match", findings[1].name());
     }
 }
