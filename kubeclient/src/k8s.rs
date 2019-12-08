@@ -6,9 +6,13 @@ impl Object for k8s_openapi::api::core::v1::Pod {
         "api"
     }
 
-    fn name() -> &'static str { "pods" }
+    fn name() -> &'static str {
+        "pods"
+    }
 
-    fn is_namespaced() -> bool { true }
+    fn is_namespaced() -> bool {
+        true
+    }
 }
 
 impl Object for k8s_openapi::api::core::v1::Node {
@@ -16,9 +20,13 @@ impl Object for k8s_openapi::api::core::v1::Node {
         "api"
     }
 
-    fn name() -> &'static str { "nodes" }
+    fn name() -> &'static str {
+        "nodes"
+    }
 
-    fn is_namespaced() -> bool { false }
+    fn is_namespaced() -> bool {
+        false
+    }
 }
 
 impl Object for k8s_openapi::api::core::v1::Service {
@@ -26,9 +34,13 @@ impl Object for k8s_openapi::api::core::v1::Service {
         "api"
     }
 
-    fn name() -> &'static str { "services" }
+    fn name() -> &'static str {
+        "services"
+    }
 
-    fn is_namespaced() -> bool { true }
+    fn is_namespaced() -> bool {
+        true
+    }
 }
 
 k8s_if_ge_1_9! {

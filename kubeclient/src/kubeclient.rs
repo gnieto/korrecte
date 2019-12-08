@@ -1,12 +1,12 @@
 use crate::config::reqwest::reqwest_client;
 use crate::config::ClusterConfig;
 use anyhow::{Context, Result};
+use k8s_openapi::apimachinery::pkg::apis::meta::v1::ListMeta;
+use k8s_openapi::Resource;
 use reqwest::Client as ReqwestClient;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use std::borrow::Borrow;
-use k8s_openapi::Resource;
-use k8s_openapi::apimachinery::pkg::apis::meta::v1::ListMeta;
 
 pub struct KubeClient {
     base_uri: String,
