@@ -1,12 +1,12 @@
 use crate::config::reqwest::reqwest_client;
 use crate::config::ClusterConfig;
 use anyhow::{Context, Result};
-use k8s_openapi::apimachinery::pkg::apis::meta::v1::ListMeta;
-use k8s_openapi::Resource;
 use reqwest::Client as ReqwestClient;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use std::borrow::Borrow;
+use k8s_openapi::Resource;
+use k8s_openapi::apimachinery::pkg::apis::meta::v1::ListMeta;
 
 pub struct KubeClient {
     base_uri: String,
@@ -46,7 +46,7 @@ pub struct ObjectList<O: Object> {
     #[serde(bound(deserialize = "Vec<O>: Deserialize<'de>"))]
     pub items: Vec<O>,
 
-    pub metadata: ListMeta,
+    pub metadata: ListMeta;
 }
 
 pub trait Object: Resource + Sized {
@@ -73,13 +73,13 @@ pub trait Object: Resource + Sized {
             group = g,
             version = Self::version(),
             namespaces = n,
-            resource = Self::resource(),
+            resource = Self::name(),
         )
     }
 
     fn prefix() -> &'static str;
 
-    fn resource() -> String {
-        format!("{}s", Self::kind().to_lowercase())
-    }
+    fn name() -> &'static str;
+
+    fn is_namespaced() -> bool;
 }
