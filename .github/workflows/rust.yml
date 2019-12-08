@@ -15,9 +15,3 @@ jobs:
       run: cargo test --verbose
     - name: Fmt
       run: cargo fmt -- --check
-    - name: Publish Docker image to Registry
-      uses: elgohr/Publish-Docker-Github-Action@master
-      with:
-        name: korrecte/korrecte
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
