@@ -21,7 +21,7 @@ use std::collections::BTreeMap;
 pub(crate) struct ServiceWithoutMatchingLabels;
 
 impl Lint for ServiceWithoutMatchingLabels {
-    fn v1_service(&self, service: &Service, context: &Context) {
+    fn core_v1_service(&self, service: &Service, context: &Context) {
         let selectors: BTreeMap<String, String> =
             f!(service.spec, selector).cloned().unwrap_or_default();
 

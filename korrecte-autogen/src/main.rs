@@ -16,6 +16,7 @@ fn main() {
         OpenapiResource::new("k8s_openapi::api::policy::v1beta1::PodDisruptionBudget"),
         OpenapiResource::new("k8s_openapi::api::autoscaling::v1::HorizontalPodAutoscaler"),
         OpenapiResource::new("k8s_openapi::api::networking::v1beta1::Ingress"),
+        OpenapiResource::new("k8s_openapi::api::extensions::v1beta1::Ingress"),
         OpenapiResource::new("k8s_openapi::api::rbac::v1::ClusterRole"),
         OpenapiResource::new("k8s_openapi::api::rbac::v1::Role"),
     ];
@@ -56,8 +57,9 @@ impl<'a> OpenapiResource<'a> {
         split.reverse();
 
         let object = split.get(0).unwrap();
-        let version = split.get(1).unwrap();
-        let variant = format!("{}{}", version, object);
+        let version = uppercase_first(split.get(1).unwrap());
+        let group = split.get(2).unwrap();
+        let variant = format!("{}{}{}", group, version, object);
 
         uppercase_first(&variant)
     }
@@ -78,8 +80,9 @@ impl<'a> OpenapiResource<'a> {
         split.reverse();
 
         let version = split.get(1).unwrap();
+        let group = lowercase_first(split.get(2).unwrap());
 
-        format!("{}_{}", version, self.clean_name())
+        format!("{}_{}_{}", group, version, self.clean_name())
     }
 
     pub fn parts(&self) -> (&str, &str, &str) {
@@ -298,5 +301,14 @@ fn uppercase_first(s: &str) -> String {
     match c.next() {
         None => String::new(),
         Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+    }
+}
+
+#[allow(dead_code)]
+fn lowercase_first(s: &str) -> String {
+    let mut c = s.chars();
+    match c.next() {
+        None => String::new(),
+        Some(f) => f.to_lowercase().collect::<String>() + c.as_str(),
     }
 }

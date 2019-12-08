@@ -22,26 +22,26 @@ pub(crate) fn visit_all_pod_specs<V: PodSpecVisitor>(context: &Context, visitor:
 
 pub(crate) fn pod_spec_visit<V: PodSpecVisitor>(object: &KubeObjectType, visitor: &mut V) {
     match object {
-        KubeObjectType::V1Pod(pod) => {
+        KubeObjectType::CoreV1Pod(pod) => {
             let meta = &pod.metadata.as_ref().unwrap();
             visitor.visit_pod_spec(&pod.spec.as_ref().unwrap(), meta, pod.metadata.as_ref());
         }
-        KubeObjectType::V1Deployment(object) => {
+        KubeObjectType::AppsV1Deployment(object) => {
             let maybe_template = object.spec.as_ref().map(|s| &s.template);
 
             visit_pod_template(maybe_template, object.metadata.as_ref(), visitor)
         }
-        KubeObjectType::V1DaemonSet(object) => {
+        KubeObjectType::AppsV1DaemonSet(object) => {
             let maybe_template = object.spec.as_ref().map(|s| &s.template);
 
             visit_pod_template(maybe_template, object.metadata.as_ref(), visitor)
         }
-        KubeObjectType::V1ReplicaSet(object) => {
+        KubeObjectType::AppsV1ReplicaSet(object) => {
             let maybe_template = f!(object.spec, template);
 
             visit_pod_template(maybe_template, object.metadata.as_ref(), visitor)
         }
-        KubeObjectType::V1StatefulSet(object) => {
+        KubeObjectType::AppsV1StatefulSet(object) => {
             let maybe_template = object.spec.as_ref().map(|s| &s.template);
 
             visit_pod_template(maybe_template, object.metadata.as_ref(), visitor)

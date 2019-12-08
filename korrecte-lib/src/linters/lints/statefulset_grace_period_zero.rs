@@ -19,7 +19,7 @@ use k8s_openapi::api::apps::v1::StatefulSet;
 pub(crate) struct StatefulsetGracePeriodZero;
 
 impl Lint for StatefulsetGracePeriodZero {
-    fn v1_stateful_set(&self, stateful_set: &StatefulSet, context: &Context) {
+    fn apps_v1_stateful_set(&self, stateful_set: &StatefulSet, context: &Context) {
         if let Some(ref spec) = m!(stateful_set.spec, template, spec) {
             let grace_period = f!(spec, termination_grace_period_seconds)
                 .cloned()

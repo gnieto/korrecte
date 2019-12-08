@@ -22,7 +22,7 @@ use std::collections::HashSet;
 pub(crate) struct AlbIngressInstance;
 
 impl Lint for AlbIngressInstance {
-    fn v1beta1_ingress(&self, ingress: &Ingress, context: &Context) {
+    fn networking_v1beta1_ingress(&self, ingress: &Ingress, context: &Context) {
         let is_alb_ingress = f!(ingress.metadata, annotations)
             .and_then(|a| a.get("kubernetes.io/ingress.class"))
             .map(|class| class == "alb")
@@ -72,7 +72,7 @@ impl AlbIngressInstance {
 
     fn filter_service(object: &KubeObjectType) -> Option<&Service> {
         match object {
-            KubeObjectType::V1Service(s) => Some(s),
+            KubeObjectType::CoreV1Service(s) => Some(s),
             _ => None,
         }
     }

@@ -46,7 +46,7 @@ pub struct ObjectList<O: Object> {
     #[serde(bound(deserialize = "Vec<O>: Deserialize<'de>"))]
     pub items: Vec<O>,
 
-    pub metadata: ListMeta;
+    pub metadata: ListMeta,
 }
 
 pub trait Object: Resource + Sized {

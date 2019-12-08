@@ -122,7 +122,7 @@ impl RoleSimilarNames {
 }
 
 impl Lint for RoleSimilarNames {
-    fn v1_cluster_role(&self, cluster_role: &ClusterRole, context: &Context) {
+    fn rbac_v1_cluster_role(&self, cluster_role: &ClusterRole, context: &Context) {
         if let Some(ref rules) = cluster_role.rules {
             for rule in rules {
                 // Check verbs
@@ -156,7 +156,7 @@ impl Lint for RoleSimilarNames {
         }
     }
 
-    fn v1_role(&self, role: &Role, context: &Context) {
+    fn rbac_v1_role(&self, role: &Role, context: &Context) {
         if let Some(ref rules) = role.rules {
             for rule in rules {
                 // Check verbs

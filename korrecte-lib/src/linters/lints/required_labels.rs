@@ -34,7 +34,7 @@ impl RequiredLabels {
 }
 
 impl Lint for RequiredLabels {
-    fn v1_pod(&self, pod: &Pod, context: &Context) {
+    fn core_v1_pod(&self, pod: &Pod, context: &Context) {
         let current_labels: Vec<String> = f!(pod.metadata, labels)
             .map(|labels| labels.keys().cloned().collect())
             .unwrap_or_default();

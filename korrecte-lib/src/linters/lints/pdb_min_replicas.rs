@@ -23,7 +23,7 @@ use std::borrow::Borrow;
 pub(crate) struct PdbMinReplicas;
 
 impl Lint for PdbMinReplicas {
-    fn v1beta1_pod_disruption_budget(&self, pdb: &PodDisruptionBudget, context: &Context) {
+    fn policy_v1beta1_pod_disruption_budget(&self, pdb: &PodDisruptionBudget, context: &Context) {
         if let Some(pdb_min_available) = Self::get_min_replicas(pdb) {
             self.matching_deployments(pdb, context, pdb_min_available);
             self.matching_hpas(pdb, context, pdb_min_available);
@@ -55,7 +55,7 @@ impl PdbMinReplicas {
         object_repository
             .iter()
             .filter_map(|o| match o {
-                KubeObjectType::V1Deployment(d) => Some(d),
+                KubeObjectType::AppsV1Deployment(d) => Some(d),
                 _ => None,
             })
             .filter(|deploy| Self::deploy_matches_with_pdb(pdb, deploy))
@@ -71,7 +71,7 @@ impl PdbMinReplicas {
         object_repository
             .iter()
             .filter_map(|o| match o {
-                KubeObjectType::V1HorizontalPodAutoscaler(hpa) => Some(hpa),
+                KubeObjectType::AutoscalingV1HorizontalPodAutoscaler(hpa) => Some(hpa),
                 _ => None,
             })
             .filter(|hpa| {
@@ -81,7 +81,7 @@ impl PdbMinReplicas {
                     object_repository
                         .iter()
                         .filter_map(|object| match object {
-                            KubeObjectType::V1Deployment(d) => Some(d),
+                            KubeObjectType::AppsV1Deployment(d) => Some(d),
                             _ => None,
                         })
                         .any(|deploy| Self::deploy_matches_with_pdb(pdb.borrow(), &deploy))
