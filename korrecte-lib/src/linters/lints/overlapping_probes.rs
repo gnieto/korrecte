@@ -65,23 +65,7 @@ impl<'a> OverlappingProbesVisitor<'a> {
     }
 
     fn calculate_time_frame(probe: &Probe) -> TimeFrame {
-        let initial_delay = probe.initial_delay_seconds.unwrap_or(0) as u64;
-        let initial = Duration::new(initial_delay, 0);
-
-        let failure_threshold = probe.failure_threshold.unwrap_or(0) as u64;
-        let success_threshold = probe.success_threshold.unwrap_or(0) as u64;
-        let max_probe_amount = failure_threshold.saturating_add(success_threshold);
-
-        let timeout = probe.timeout_seconds.unwrap_or(1) as u64;
-        let max_delay = max_probe_amount.saturating_mul(timeout);
-        let max_duration = initial
-            .checked_add(Duration::new(max_delay, 0))
-            .unwrap_or_else(|| initial);
-
-        TimeFrame {
-            start: initial,
-            end: max_duration,
-        }
+        TimeFrame::from(probe)
     }
 }
 
@@ -99,6 +83,29 @@ struct TimeFrame {
     end: Duration,
 }
 
+impl From<&Probe> for TimeFrame {
+    fn from(probe: &Probe) -> Self {
+        let initial_delay = probe.initial_delay_seconds.unwrap_or(0) as u64;
+        let initial = Duration::new(initial_delay, 0);
+
+        let failure_threshold = probe.failure_threshold.unwrap_or(0) as u64;
+        let success_threshold = probe.success_threshold.unwrap_or(0) as u64;
+        let max_probe_amount = failure_threshold.saturating_add(success_threshold);
+
+        let timeout = probe.timeout_seconds.unwrap_or(1) as u64;
+        let period = probe.period_seconds.unwrap_or(10) as u64;
+        let max_delay = max_probe_amount.saturating_mul(period + timeout);
+        let max_duration = initial
+            .checked_add(Duration::new(max_delay, 0))
+            .unwrap_or_else(|| initial);
+
+        TimeFrame {
+            start: initial,
+            end: max_duration,
+        }
+    }
+}
+
 impl TimeFrame {
     pub fn overlaps_with(&self, frame: &TimeFrame) -> bool {
         self.end > frame.start
@@ -107,8 +114,9 @@ impl TimeFrame {
 
 #[cfg(test)]
 mod tests {
-    use crate::linters::lints::overlapping_probes::OverlappingProbes;
+    use crate::linters::lints::overlapping_probes::{OverlappingProbes, TimeFrame};
     use crate::tests::{analyze_file, filter_findings_by};
+    use k8s_openapi::api::core::v1::Probe;
     use std::path::Path;
 
     #[test]
@@ -118,5 +126,21 @@ mod tests {
 
         assert_eq!(1, findings.len());
         assert_eq!(findings[0].name(), "hello-node");
+    }
+
+    #[test]
+    fn it_calculate_max_probe_with_periods() {
+        let probe = Probe {
+            failure_threshold: Some(2),
+            initial_delay_seconds: Some(5),
+            success_threshold: Some(3),
+            period_seconds: Some(6),
+            timeout_seconds: Some(4),
+            ..Default::default()
+        };
+        let tf = TimeFrame::from(&probe);
+
+        assert_eq!(5, tf.start.as_secs());
+        assert_eq!(5 + ((3 + 2) * (6 + 4)), tf.end.as_secs());
     }
 }
