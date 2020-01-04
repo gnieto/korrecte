@@ -1,4 +1,5 @@
 pub(crate) mod alb_ingress_instance;
+pub(crate) mod deprecations;
 pub(crate) mod environment_passwords;
 pub(crate) mod never_restart_with_liveness_probe;
 pub(crate) mod overlapping_probes;
