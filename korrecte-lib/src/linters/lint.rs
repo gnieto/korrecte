@@ -2,6 +2,7 @@ use crate::linters::evaluator::Context;
 use anyhow::{anyhow, Result};
 
 pub trait Lint {
+    fn name(&self) -> &str;
     fn core_v1_node(&self, _node: &k8s_openapi::api::core::v1::Node, _context: &Context) {}
     fn core_v1_pod(&self, _pod: &k8s_openapi::api::core::v1::Pod, _context: &Context) {}
     fn core_v1_service(&self, _service: &k8s_openapi::api::core::v1::Service, _context: &Context) {}

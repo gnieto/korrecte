@@ -1,14 +1,20 @@
 use colored::*;
 use korrecte::reporting::Finding;
+use korrecte::linters::LintSpecLoader;
+use anyhow::*;
 
 pub struct Cli;
 
 impl Cli {
-    pub fn render(findings: &[Finding]) {
+    pub fn render(findings: &[Finding]) -> Result<()> {
+        let lint_specs = LintSpecLoader::new()?;
+
         for finding in findings {
+            let spec = lint_specs.get(finding.lint_name()).unwrap();
+
             println!(
                 "{} on {} [{}]. Metadata: {:?}",
-                finding.spec().name.bold(),
+                spec.name.bold(),
                 finding.name().green(),
                 finding
                     .namespace()
@@ -18,5 +24,7 @@ impl Cli {
                 finding.lint_metadata(),
             )
         }
+
+        Ok(())
     }
 }

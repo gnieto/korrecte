@@ -121,7 +121,13 @@ impl RoleSimilarNames {
     }
 }
 
+const LINT_NAME: &str = "role_similar_names";
+
 impl Lint for RoleSimilarNames {
+    fn name(&self) -> &str {
+        LINT_NAME
+    }
+
     fn rbac_v1_cluster_role(&self, cluster_role: &ClusterRole, context: &Context) {
         if let Some(ref rules) = cluster_role.rules {
             for rule in rules {
@@ -196,7 +202,7 @@ impl RoleSimilarNames {
         let similar_names = RoleSimilarNames::find_similar_names(given_names, correct_names);
 
         for (incorrect, similar) in similar_names {
-            let finding = Finding::new(RoleSimilarNames::spec(), meta.clone())
+            let finding = Finding::new(LINT_NAME, meta.clone())
                 .add_metadata("incorrect_name", incorrect)
                 .add_metadata("suggested_name", similar.similar_to);
             context.reporter.report(finding);

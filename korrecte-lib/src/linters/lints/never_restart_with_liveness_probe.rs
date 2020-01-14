@@ -18,7 +18,13 @@ use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 #[derive(Default)]
 pub(crate) struct NeverRestartWithLivenessProbe;
 
+const LINT_NAME: &str = "never_restart_with_liveness_probe";
+
 impl Lint for NeverRestartWithLivenessProbe {
+    fn name(&self) -> &str {
+        LINT_NAME
+    }
+
     fn object(&self, object: &KubeObjectType, context: &Context) {
         let mut visitor = NeverRestartWithLivenessProbeVisitor { context };
         pod_spec_visit(&object, &mut visitor);
@@ -48,17 +54,8 @@ impl<'a> PodSpecVisitor for NeverRestartWithLivenessProbeVisitor<'a> {
             return;
         }
 
-        let finding = Finding::new(NeverRestartWithLivenessProbe::spec(), meta.cloned());
+        let finding = Finding::new(LINT_NAME, meta.cloned());
         self.context.reporter.report(finding);
-    }
-}
-
-impl NeverRestartWithLivenessProbe {
-    fn spec() -> LintSpec {
-        LintSpec {
-            group: Group::Configuration,
-            name: "never_restart_with_liveness_probe".to_string(),
-        }
     }
 }
 

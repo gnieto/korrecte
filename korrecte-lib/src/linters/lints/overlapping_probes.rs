@@ -25,7 +25,13 @@ use std::time::Duration;
 #[derive(Default)]
 pub(crate) struct OverlappingProbes;
 
+const LINT_NAME: &str = "overlapping_probes";
+
 impl Lint for OverlappingProbes {
+    fn name(&self) -> &str {
+        LINT_NAME
+    }
+
     fn object(&self, object: &KubeObjectType, context: &Context) {
         let mut visitor = OverlappingProbesVisitor { context };
         pod_spec_visit(&object, &mut visitor);
@@ -54,7 +60,7 @@ impl<'a> OverlappingProbesVisitor<'a> {
                 let readiness_end = format!("{:?}", readiness.end);
                 let liveness_start = format!("{:?}", liveness.start);
 
-                let finding = Finding::new(OverlappingProbes::spec(), object_meta.cloned())
+                let finding = Finding::new(LINT_NAME, object_meta.cloned())
                     .add_metadata("container".to_string(), c.name.clone())
                     .add_metadata("readiness_max_delay".to_string(), readiness_end)
                     .add_metadata("liveness_start".to_string(), liveness_start);
@@ -66,15 +72,6 @@ impl<'a> OverlappingProbesVisitor<'a> {
 
     fn calculate_time_frame(probe: &Probe) -> TimeFrame {
         TimeFrame::from(probe)
-    }
-}
-
-impl OverlappingProbes {
-    fn spec() -> LintSpec {
-        LintSpec {
-            group: Group::Configuration,
-            name: "overlapping_probes".to_string(),
-        }
     }
 }
 

@@ -1,0 +1,12 @@
+specs:
+  - name: alb_ingress_controller_instance_misconfiguration
+    group: Configuration
+    description: Checks that all ALB ingresses are linked to services which have compatible types with the ingress. When the ingress is configured with target-type `instance`, only `NodePort` and `LoadBalancer` types are allowed; when it's configured as `ip`, only `ClusterIP` services are allowed.
+    references:
+      - "https://kubernetes-sigs.github.io/aws-alb-ingress-controller/guide/ingress/annotation/#target-type"
+  - name: environment_passwords
+    group: Security
+    description: Finds passwords or api keys on object manifests.
+    references:
+      - "https://kubernetes.io/docs/concepts/configuration/secret/"
+      - "https://kubernetes.io/docs/tasks/inject-data-application/distribute-credentials-secure/"

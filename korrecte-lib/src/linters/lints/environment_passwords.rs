@@ -22,7 +22,13 @@ pub(crate) struct EnvironmentPasswords {
     config: Config,
 }
 
+const LINT_NAME: &str = "environment_passwords";
+
 impl Lint for EnvironmentPasswords {
+    fn name(&self) -> &str {
+        LINT_NAME
+    }
+
     fn object(&self, object: &KubeObjectType, context: &Context) {
         let mut visitor = EnvironmentPasswordsVisitor {
             context: &context,
@@ -49,7 +55,7 @@ impl PodSpecVisitor for EnvironmentPasswordsVisitor<'_> {
             .collect();
 
         for environment_var in env_vars_with_secrets {
-            let finding = Finding::new(EnvironmentPasswords::spec(), meta.cloned())
+            let finding = Finding::new(LINT_NAME, meta.cloned())
                 .add_metadata("environment_var".to_string(), environment_var.name.clone());
 
             self.context.reporter.report(finding)
@@ -74,13 +80,6 @@ impl EnvironmentPasswordsVisitor<'_> {
 impl EnvironmentPasswords {
     pub fn new(config: Config) -> Self {
         EnvironmentPasswords { config }
-    }
-
-    fn spec() -> LintSpec {
-        LintSpec {
-            group: Group::Security,
-            name: "environment_passwords".to_string(),
-        }
     }
 }
 

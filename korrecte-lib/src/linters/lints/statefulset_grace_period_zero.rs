@@ -19,6 +19,10 @@ use k8s_openapi::api::apps::v1::StatefulSet;
 pub(crate) struct StatefulsetGracePeriodZero;
 
 impl Lint for StatefulsetGracePeriodZero {
+    fn name(&self) -> &str {
+        "statefulset_no_grace_period"
+    }
+
     fn apps_v1_stateful_set(&self, stateful_set: &StatefulSet, context: &Context) {
         if let Some(ref spec) = m!(stateful_set.spec, template, spec) {
             let grace_period = f!(spec, termination_grace_period_seconds)
@@ -26,7 +30,7 @@ impl Lint for StatefulsetGracePeriodZero {
                 .unwrap_or(1);
 
             if grace_period == 0 {
-                let finding = Finding::new(Self::spec(), stateful_set.metadata.clone());
+                let finding = Finding::new(self.name(), stateful_set.metadata.clone());
                 context.reporter.report(finding);
             }
         }

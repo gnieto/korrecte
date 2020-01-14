@@ -22,7 +22,13 @@ use std::borrow::Borrow;
 /// - https://itnext.io/kubernetes-in-production-poddisruptionbudget-1380009aaede
 pub(crate) struct PdbMinReplicas;
 
+const LINT_NAME: &str = "pdb_min_replicas";
+
 impl Lint for PdbMinReplicas {
+    fn name(&self) -> &str {
+        LINT_NAME
+    }
+
     fn policy_v1beta1_pod_disruption_budget(&self, pdb: &PodDisruptionBudget, context: &Context) {
         if let Some(pdb_min_available) = Self::get_min_replicas(pdb) {
             self.matching_deployments(pdb, context, pdb_min_available);
@@ -105,7 +111,7 @@ impl PdbMinReplicas {
             let deploy_replicas = *f!(d.spec, replicas).unwrap_or(&0);
 
             if pdb_min_available >= deploy_replicas {
-                let finding = Finding::new(Self::spec(), pdb.metadata.clone())
+                let finding = Finding::new(self.name(), pdb.metadata.clone())
                     .add_metadata("deploy_replicas", deploy_replicas)
                     .add_metadata("pdb_min_available", pdb_min_available.to_string());
                 context.reporter.report(finding);
@@ -119,7 +125,7 @@ impl PdbMinReplicas {
         matching_hpa.iter().for_each(|d| {
             let hpa_replicas = *f!(d.spec, min_replicas).unwrap_or(&0);
             if pdb_min_available >= hpa_replicas {
-                let finding = Finding::new(Self::spec(), pdb.metadata.clone())
+                let finding = Finding::new(self.name(), pdb.metadata.clone())
                     .add_metadata("hpa_replicas", hpa_replicas)
                     .add_metadata("pdb_min_available", pdb_min_available.to_string());
                 context.reporter.report(finding);

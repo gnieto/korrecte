@@ -21,7 +21,13 @@ use std::collections::BTreeMap;
 #[derive(Default)]
 pub(crate) struct PodRequirements;
 
+const LINT_NAME: &str = "pod_requirements";
+
 impl Lint for PodRequirements {
+    fn name(&self) -> &str {
+        LINT_NAME
+    }
+
     fn object(&self, object: &KubeObjectType, context: &Context) {
         let mut visitor = PodRequirementsVisitor { context };
         pod_spec_visit(&object, &mut visitor);
@@ -104,7 +110,7 @@ impl<'a> PodRequirementsVisitor<'a> {
     }
 
     fn missing_resource(&self, metadata: Option<&ObjectMeta>, container: &Container, key: &str) {
-        let finding = Finding::new(PodRequirements::spec(), metadata.cloned())
+        let finding = Finding::new(LINT_NAME, metadata.cloned())
             .add_metadata(key, "")
             .add_metadata("container", container.name.clone());
 

@@ -25,6 +25,10 @@ use std::collections::{BTreeMap, HashSet};
 pub(crate) struct AlbIngressInstance;
 
 impl Lint for AlbIngressInstance {
+    fn name(&self) -> &str {
+        "alb_ingress_controller_instance_misconfiguration"
+    }
+
     fn networking_v1beta1_ingress(&self, ingress: &Ingress, context: &Context) {
         self.lint_alb_ingress(ingress, context);
     }
@@ -35,13 +39,6 @@ impl Lint for AlbIngressInstance {
 }
 
 impl AlbIngressInstance {
-    fn spec() -> LintSpec {
-        LintSpec {
-            group: Group::Configuration,
-            name: "alb_ingress_controller_instance_misconfiguration".to_string(),
-        }
-    }
-
     fn lint_alb_ingress(&self, ingress: &dyn IngressExt, context: &Context) {
         if !ingress.is_alb() {
             return;
@@ -53,7 +50,7 @@ impl AlbIngressInstance {
             self.get_misconfigured_services(context, &ingress_type, services);
 
         for service in misconfigured_services {
-            let finding = Finding::new(Self::spec(), ingress.metadata().cloned())
+            let finding = Finding::new(self.name(), ingress.metadata().cloned())
                 .add_metadata("service", f!(service.metadata, name).cloned().unwrap());
 
             context.reporter.report(finding);

@@ -34,6 +34,10 @@ impl RequiredLabels {
 }
 
 impl Lint for RequiredLabels {
+    fn name(&self) -> &str {
+        "required_labels"
+    }
+
     fn core_v1_pod(&self, pod: &Pod, context: &Context) {
         let current_labels: Vec<String> = f!(pod.metadata, labels)
             .map(|labels| labels.keys().cloned().collect())
@@ -55,7 +59,7 @@ impl Lint for RequiredLabels {
             );
 
             let finding =
-                Finding::new(RequiredLabels::spec(), pod.metadata.clone()).with_metadata(metadata);
+                Finding::new(self.name(), pod.metadata.clone()).with_metadata(metadata);
 
             context.reporter.report(finding);
         }

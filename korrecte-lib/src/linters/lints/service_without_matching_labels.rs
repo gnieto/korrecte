@@ -21,6 +21,10 @@ use std::collections::BTreeMap;
 pub(crate) struct ServiceWithoutMatchingLabels;
 
 impl Lint for ServiceWithoutMatchingLabels {
+    fn name(&self) -> &str {
+        "service_without_matching_labels"
+    }
+
     fn core_v1_service(&self, service: &Service, context: &Context) {
         let selectors: BTreeMap<String, String> =
             f!(service.spec, selector).cloned().unwrap_or_default();
@@ -29,7 +33,7 @@ impl Lint for ServiceWithoutMatchingLabels {
         visit_all_pod_specs(context, &mut visitor);
 
         if !visitor.any_pod_matches {
-            let finding = Finding::new(Self::spec(), service.metadata.clone());
+            let finding = Finding::new(self.name(), service.metadata.clone());
             context.reporter.report(finding);
         }
     }

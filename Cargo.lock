@@ -872,6 +872,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "korrecte-dev"
+version = "0.1.0"
+dependencies = [
+ "korrecte 0.1.0",
+]
+
+[[package]]
 name = "korrecte-web"
 version = "0.1.0"
 dependencies = [

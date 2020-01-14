@@ -13,7 +13,7 @@ pub trait Reporter {
 
 #[derive(Clone, Serialize, Debug)]
 pub struct Finding {
-    spec: LintSpec,
+    lint_name: String,
     name: String,
     namespace: Option<String>,
     // TODO: Think about a better data structure
@@ -21,11 +21,11 @@ pub struct Finding {
 }
 
 impl Finding {
-    pub fn new(spec: LintSpec, object_metadata: Option<ObjectMeta>) -> Self {
+    pub fn new(lint_name: &str, object_metadata: Option<ObjectMeta>) -> Self {
         let metadata = object_metadata.unwrap_or_default();
 
         Finding {
-            spec,
+            lint_name: lint_name.to_string(),
             name: metadata.name.unwrap_or_default().clone(),
             namespace: metadata.namespace.clone(),
             lint_metadata: HashMap::new(),
@@ -43,9 +43,8 @@ impl Finding {
         self
     }
 
-    #[allow(unused)]
-    pub fn spec(&self) -> &LintSpec {
-        &self.spec
+    pub fn lint_name(&self) -> &String {
+        &self.lint_name
     }
 
     #[allow(unused)]

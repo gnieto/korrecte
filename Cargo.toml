@@ -3,6 +3,7 @@
 members = [
     "korrecte-autogen",
     "korrecte-cli",
+    "korrecte-dev",
     "korrecte-lib",
     "korrecte-web",
     "kubeclient",
