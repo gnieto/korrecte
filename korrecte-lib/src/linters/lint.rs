@@ -60,6 +60,54 @@ pub trait Lint {
     ) {
     }
     fn rbac_v1_role(&self, _role: &k8s_openapi::api::rbac::v1::Role, _context: &Context) {}
+    fn extensions_v1beta1_network_policy(
+        &self,
+        _network_policy: &k8s_openapi::api::extensions::v1beta1::NetworkPolicy,
+        _context: &Context,
+    ) {
+    }
+    fn extensions_v1beta1_pod_security_policy(
+        &self,
+        _pod_security_policy: &k8s_openapi::api::extensions::v1beta1::PodSecurityPolicy,
+        _context: &Context,
+    ) {
+    }
+    fn extensions_v1beta1_daemon_set(
+        &self,
+        _daemon_set: &k8s_openapi::api::extensions::v1beta1::DaemonSet,
+        _context: &Context,
+    ) {
+    }
+    fn extensions_v1beta1_deployment(
+        &self,
+        _deployment: &k8s_openapi::api::extensions::v1beta1::Deployment,
+        _context: &Context,
+    ) {
+    }
+    fn extensions_v1beta1_replica_set(
+        &self,
+        _replica_set: &k8s_openapi::api::extensions::v1beta1::ReplicaSet,
+        _context: &Context,
+    ) {
+    }
+    fn apps_v1beta2_daemon_set(
+        &self,
+        _daemon_set: &k8s_openapi::api::apps::v1beta2::DaemonSet,
+        _context: &Context,
+    ) {
+    }
+    fn apps_v1beta2_deployment(
+        &self,
+        _deployment: &k8s_openapi::api::apps::v1beta2::Deployment,
+        _context: &Context,
+    ) {
+    }
+    fn apps_v1beta2_replica_set(
+        &self,
+        _replica_set: &k8s_openapi::api::apps::v1beta2::ReplicaSet,
+        _context: &Context,
+    ) {
+    }
 
     fn object(&self, object: &KubeObjectType, context: &Context) {
         match object {
@@ -84,6 +132,28 @@ pub trait Lint {
             }
             KubeObjectType::RbacV1ClusterRole(ref o) => self.rbac_v1_cluster_role(o, context),
             KubeObjectType::RbacV1Role(ref o) => self.rbac_v1_role(o, context),
+            KubeObjectType::ExtensionsV1beta1NetworkPolicy(ref o) => {
+                self.extensions_v1beta1_network_policy(o, context)
+            }
+            KubeObjectType::ExtensionsV1beta1PodSecurityPolicy(ref o) => {
+                self.extensions_v1beta1_pod_security_policy(o, context)
+            }
+            KubeObjectType::ExtensionsV1beta1DaemonSet(ref o) => {
+                self.extensions_v1beta1_daemon_set(o, context)
+            }
+            KubeObjectType::ExtensionsV1beta1Deployment(ref o) => {
+                self.extensions_v1beta1_deployment(o, context)
+            }
+            KubeObjectType::ExtensionsV1beta1ReplicaSet(ref o) => {
+                self.extensions_v1beta1_replica_set(o, context)
+            }
+            KubeObjectType::AppsV1beta2DaemonSet(ref o) => self.apps_v1beta2_daemon_set(o, context),
+            KubeObjectType::AppsV1beta2Deployment(ref o) => {
+                self.apps_v1beta2_deployment(o, context)
+            }
+            KubeObjectType::AppsV1beta2ReplicaSet(ref o) => {
+                self.apps_v1beta2_replica_set(o, context)
+            }
         }
     }
 }
@@ -105,6 +175,16 @@ pub enum KubeObjectType {
     ExtensionsV1beta1Ingress(Box<k8s_openapi::api::extensions::v1beta1::Ingress>),
     RbacV1ClusterRole(Box<k8s_openapi::api::rbac::v1::ClusterRole>),
     RbacV1Role(Box<k8s_openapi::api::rbac::v1::Role>),
+    ExtensionsV1beta1NetworkPolicy(Box<k8s_openapi::api::extensions::v1beta1::NetworkPolicy>),
+    ExtensionsV1beta1PodSecurityPolicy(
+        Box<k8s_openapi::api::extensions::v1beta1::PodSecurityPolicy>,
+    ),
+    ExtensionsV1beta1DaemonSet(Box<k8s_openapi::api::extensions::v1beta1::DaemonSet>),
+    ExtensionsV1beta1Deployment(Box<k8s_openapi::api::extensions::v1beta1::Deployment>),
+    ExtensionsV1beta1ReplicaSet(Box<k8s_openapi::api::extensions::v1beta1::ReplicaSet>),
+    AppsV1beta2DaemonSet(Box<k8s_openapi::api::apps::v1beta2::DaemonSet>),
+    AppsV1beta2Deployment(Box<k8s_openapi::api::apps::v1beta2::Deployment>),
+    AppsV1beta2ReplicaSet(Box<k8s_openapi::api::apps::v1beta2::ReplicaSet>),
 }
 
 impl KubeObjectType {
@@ -197,6 +277,54 @@ impl KubeObjectType {
                 let object = serde_yaml::from_str(yaml)?;
 
                 Ok(KubeObjectType::RbacV1Role(object))
+            }
+
+            ("extensions", "v1beta1", "NetworkPolicy") => {
+                let object = serde_yaml::from_str(yaml)?;
+
+                Ok(KubeObjectType::ExtensionsV1beta1NetworkPolicy(object))
+            }
+
+            ("extensions", "v1beta1", "PodSecurityPolicy") => {
+                let object = serde_yaml::from_str(yaml)?;
+
+                Ok(KubeObjectType::ExtensionsV1beta1PodSecurityPolicy(object))
+            }
+
+            ("extensions", "v1beta1", "DaemonSet") => {
+                let object = serde_yaml::from_str(yaml)?;
+
+                Ok(KubeObjectType::ExtensionsV1beta1DaemonSet(object))
+            }
+
+            ("extensions", "v1beta1", "Deployment") => {
+                let object = serde_yaml::from_str(yaml)?;
+
+                Ok(KubeObjectType::ExtensionsV1beta1Deployment(object))
+            }
+
+            ("extensions", "v1beta1", "ReplicaSet") => {
+                let object = serde_yaml::from_str(yaml)?;
+
+                Ok(KubeObjectType::ExtensionsV1beta1ReplicaSet(object))
+            }
+
+            ("apps", "v1beta2", "DaemonSet") => {
+                let object = serde_yaml::from_str(yaml)?;
+
+                Ok(KubeObjectType::AppsV1beta2DaemonSet(object))
+            }
+
+            ("apps", "v1beta2", "Deployment") => {
+                let object = serde_yaml::from_str(yaml)?;
+
+                Ok(KubeObjectType::AppsV1beta2Deployment(object))
+            }
+
+            ("apps", "v1beta2", "ReplicaSet") => {
+                let object = serde_yaml::from_str(yaml)?;
+
+                Ok(KubeObjectType::AppsV1beta2ReplicaSet(object))
             }
             _ => Err(anyhow!("Could not decode the given object type")),
         }

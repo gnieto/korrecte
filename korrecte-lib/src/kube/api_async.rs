@@ -1,4 +1,5 @@
-use crate::kube::{KubeVersion, ObjectRepository};
+use crate::kube::KubeVersion;
+use crate::kube::ObjectRepository;
 use crate::linters::KubeObjectType;
 use ::pin_utils::pin_mut;
 use anyhow::*;
@@ -249,6 +250,142 @@ impl ApiObjectRepository {
         };
         pin_mut!(role);
         v.push(role);
+
+        let network_policy = async {
+            let pods = self
+                .kubeclient
+                .list::<k8s_openapi::api::extensions::v1beta1::NetworkPolicy>()
+                .await;
+
+            pods.map(|list| {
+                list.items
+                    .into_iter()
+                    .map(|p| KubeObjectType::ExtensionsV1beta1NetworkPolicy(Box::new(p)))
+                    .collect::<Vec<KubeObjectType>>()
+            })
+            .map_err(|e| ("network_policy".to_string(), e))
+        };
+        pin_mut!(network_policy);
+        v.push(network_policy);
+
+        let pod_security_policy = async {
+            let pods = self
+                .kubeclient
+                .list::<k8s_openapi::api::extensions::v1beta1::PodSecurityPolicy>()
+                .await;
+
+            pods.map(|list| {
+                list.items
+                    .into_iter()
+                    .map(|p| KubeObjectType::ExtensionsV1beta1PodSecurityPolicy(Box::new(p)))
+                    .collect::<Vec<KubeObjectType>>()
+            })
+            .map_err(|e| ("pod_security_policy".to_string(), e))
+        };
+        pin_mut!(pod_security_policy);
+        v.push(pod_security_policy);
+
+        let daemon_set = async {
+            let pods = self
+                .kubeclient
+                .list::<k8s_openapi::api::extensions::v1beta1::DaemonSet>()
+                .await;
+
+            pods.map(|list| {
+                list.items
+                    .into_iter()
+                    .map(|p| KubeObjectType::ExtensionsV1beta1DaemonSet(Box::new(p)))
+                    .collect::<Vec<KubeObjectType>>()
+            })
+            .map_err(|e| ("daemon_set".to_string(), e))
+        };
+        pin_mut!(daemon_set);
+        v.push(daemon_set);
+
+        let deployment = async {
+            let pods = self
+                .kubeclient
+                .list::<k8s_openapi::api::extensions::v1beta1::Deployment>()
+                .await;
+
+            pods.map(|list| {
+                list.items
+                    .into_iter()
+                    .map(|p| KubeObjectType::ExtensionsV1beta1Deployment(Box::new(p)))
+                    .collect::<Vec<KubeObjectType>>()
+            })
+            .map_err(|e| ("deployment".to_string(), e))
+        };
+        pin_mut!(deployment);
+        v.push(deployment);
+
+        let replica_set = async {
+            let pods = self
+                .kubeclient
+                .list::<k8s_openapi::api::extensions::v1beta1::ReplicaSet>()
+                .await;
+
+            pods.map(|list| {
+                list.items
+                    .into_iter()
+                    .map(|p| KubeObjectType::ExtensionsV1beta1ReplicaSet(Box::new(p)))
+                    .collect::<Vec<KubeObjectType>>()
+            })
+            .map_err(|e| ("replica_set".to_string(), e))
+        };
+        pin_mut!(replica_set);
+        v.push(replica_set);
+
+        let daemon_set = async {
+            let pods = self
+                .kubeclient
+                .list::<k8s_openapi::api::apps::v1beta2::DaemonSet>()
+                .await;
+
+            pods.map(|list| {
+                list.items
+                    .into_iter()
+                    .map(|p| KubeObjectType::AppsV1beta2DaemonSet(Box::new(p)))
+                    .collect::<Vec<KubeObjectType>>()
+            })
+            .map_err(|e| ("daemon_set".to_string(), e))
+        };
+        pin_mut!(daemon_set);
+        v.push(daemon_set);
+
+        let deployment = async {
+            let pods = self
+                .kubeclient
+                .list::<k8s_openapi::api::apps::v1beta2::Deployment>()
+                .await;
+
+            pods.map(|list| {
+                list.items
+                    .into_iter()
+                    .map(|p| KubeObjectType::AppsV1beta2Deployment(Box::new(p)))
+                    .collect::<Vec<KubeObjectType>>()
+            })
+            .map_err(|e| ("deployment".to_string(), e))
+        };
+        pin_mut!(deployment);
+        v.push(deployment);
+
+        let replica_set = async {
+            let pods = self
+                .kubeclient
+                .list::<k8s_openapi::api::apps::v1beta2::ReplicaSet>()
+                .await;
+
+            pods.map(|list| {
+                list.items
+                    .into_iter()
+                    .map(|p| KubeObjectType::AppsV1beta2ReplicaSet(Box::new(p)))
+                    .collect::<Vec<KubeObjectType>>()
+            })
+            .map_err(|e| ("replica_set".to_string(), e))
+        };
+        pin_mut!(replica_set);
+        v.push(replica_set);
 
         let a: Vec<Result<Vec<KubeObjectType>, (String, anyhow::Error)>> =
             futures::future::join_all(v).await;

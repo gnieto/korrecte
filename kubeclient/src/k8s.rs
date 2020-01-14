@@ -71,6 +71,102 @@ k8s_if_ge_1_9! {
 }
 
 k8s_if_ge_1_9! {
+    impl Object for k8s_openapi::api::extensions::v1beta1::Deployment {
+        fn prefix() -> &'static str {
+            "apis"
+        }
+
+        fn name() -> &'static str {
+            "deployments"
+        }
+
+        fn is_namespaced() -> bool {
+            true
+        }
+    }
+}
+
+k8s_if_ge_1_9! {
+    impl Object for k8s_openapi::api::apps::v1beta2::Deployment {
+        fn prefix() -> &'static str {
+            "apis"
+        }
+
+        fn name() -> &'static str {
+            "deployments"
+        }
+
+        fn is_namespaced() -> bool {
+            true
+        }
+    }
+}
+
+k8s_if_ge_1_9! {
+    impl Object for k8s_openapi::api::extensions::v1beta1::DaemonSet {
+        fn prefix() -> &'static str {
+            "apis"
+        }
+
+        fn name() -> &'static str {
+            "daemonsets"
+        }
+
+        fn is_namespaced() -> bool {
+            true
+        }
+    }
+}
+
+k8s_if_ge_1_9! {
+    impl Object for k8s_openapi::api::apps::v1beta2::DaemonSet {
+        fn prefix() -> &'static str {
+            "apis"
+        }
+
+        fn name() -> &'static str {
+            "daemonsets"
+        }
+
+        fn is_namespaced() -> bool {
+            true
+        }
+    }
+}
+
+k8s_if_ge_1_9! {
+    impl Object for k8s_openapi::api::extensions::v1beta1::ReplicaSet {
+        fn prefix() -> &'static str {
+            "apis"
+        }
+
+        fn name() -> &'static str {
+            "replicasets"
+        }
+
+        fn is_namespaced() -> bool {
+            true
+        }
+    }
+}
+
+k8s_if_ge_1_9! {
+    impl Object for k8s_openapi::api::apps::v1beta2::ReplicaSet {
+        fn prefix() -> &'static str {
+            "apis"
+        }
+
+        fn name() -> &'static str {
+            "replicasets"
+        }
+
+        fn is_namespaced() -> bool {
+            true
+        }
+    }
+}
+
+k8s_if_ge_1_9! {
     impl Object for k8s_openapi::api::apps::v1::ReplicaSet {
         fn prefix() -> &'static str {
             "apis"
@@ -181,6 +277,34 @@ impl Object for k8s_openapi::api::rbac::v1::ClusterRole {
 
     fn name() -> &'static str {
         "clusterroles"
+    }
+
+    fn is_namespaced() -> bool {
+        true
+    }
+}
+
+impl Object for k8s_openapi::api::extensions::v1beta1::NetworkPolicy {
+    fn prefix() -> &'static str {
+        "apis"
+    }
+
+    fn name() -> &'static str {
+        "networkpolicies"
+    }
+
+    fn is_namespaced() -> bool {
+        true
+    }
+}
+
+impl Object for k8s_openapi::api::extensions::v1beta1::PodSecurityPolicy {
+    fn prefix() -> &'static str {
+        "apis"
+    }
+
+    fn name() -> &'static str {
+        "podsecuritypolicies"
     }
 
     fn is_namespaced() -> bool {

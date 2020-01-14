@@ -19,6 +19,14 @@ fn main() {
         OpenapiResource::new("k8s_openapi::api::extensions::v1beta1::Ingress"),
         OpenapiResource::new("k8s_openapi::api::rbac::v1::ClusterRole"),
         OpenapiResource::new("k8s_openapi::api::rbac::v1::Role"),
+        OpenapiResource::new("k8s_openapi::api::extensions::v1beta1::NetworkPolicy"),
+        OpenapiResource::new("k8s_openapi::api::extensions::v1beta1::PodSecurityPolicy"),
+        OpenapiResource::new("k8s_openapi::api::extensions::v1beta1::DaemonSet"),
+        OpenapiResource::new("k8s_openapi::api::extensions::v1beta1::Deployment"),
+        OpenapiResource::new("k8s_openapi::api::extensions::v1beta1::ReplicaSet"),
+        OpenapiResource::new("k8s_openapi::api::apps::v1beta2::DaemonSet"),
+        OpenapiResource::new("k8s_openapi::api::apps::v1beta2::Deployment"),
+        OpenapiResource::new("k8s_openapi::api::apps::v1beta2::ReplicaSet"),
     ];
 
     let lint = build_lint_trait(&specs);
@@ -136,6 +144,8 @@ use ::pin_utils::pin_mut;
 use std::pin::Pin;
 use anyhow::*;
 use std::borrow::Borrow;
+use crate::kube::KubeVersion;
+use std::str::FromStr;
 
 pub struct ApiObjectRepository {{
     kubeclient: KubeClient,
@@ -178,15 +188,26 @@ impl ApiObjectRepository {{
 
 pub struct FrozenObjectRepository {{
     objects: Vec<KubeObjectType>,
+    version: Option<KubeVersion>,
 }}
 
 impl From<ApiObjectRepository> for FrozenObjectRepository {{
     fn from(api: ApiObjectRepository) -> Self {{
         let rt = tokio::runtime::Runtime::new().unwrap();
+
+        let version = rt.block_on(api.kubeclient.version()).unwrap();
+        let major = u16::from_str(&version.major);
+        let minor = u16::from_str(&version.minor);
+        let version = match (major, minor) {{
+            (Ok(maj), Ok(min)) => Some(KubeVersion::new(maj, min)),
+            _ => None,
+        }};
+
         let all_objects = rt.block_on(api.load_all_objects()).unwrap();
 
         FrozenObjectRepository {{
             objects: all_objects,
+            version,
         }}
     }}
 }}
@@ -194,6 +215,10 @@ impl From<ApiObjectRepository> for FrozenObjectRepository {{
 impl ObjectRepository for FrozenObjectRepository {{
     fn iter<'a>(&'a self) -> Box<dyn Iterator<Item=&'a KubeObjectType> + 'a> {{
         Box::new(self.objects.iter())
+    }}
+
+    fn version(&self) -> Option<&KubeVersion> {{
+        self.version.as_ref()
     }}
 }}
 "#
