@@ -2,7 +2,7 @@ use crate::kube::KubeVersion;
 use crate::linters::evaluator::Context;
 use crate::linters::{Group, Lint, LintSpec};
 use crate::reporting::Finding;
-use k8s_openapi::api::extensions::v1beta1::Ingress;
+use k8s_openapi::api;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use k8s_openapi::Metadata;
 
@@ -21,8 +21,82 @@ use k8s_openapi::Metadata;
 pub(crate) struct Deprecations;
 
 impl Lint for Deprecations {
-    fn extensions_v1beta1_ingress(&self, ingress: &Ingress, context: &Context) {
-        Self::check_supported_version(&KubeVersion::new(1, 14), &context, ingress.metadata());
+    // Deprecations 1.8
+    fn extensions_v1beta1_network_policy(
+        &self,
+        obj: &api::extensions::v1beta1::NetworkPolicy,
+        context: &Context,
+    ) {
+        Self::check_supported_version(&KubeVersion::new(1, 8), &context, obj.metadata());
+    }
+
+    // Deprecations 1.9
+    fn extensions_v1beta1_daemon_set(
+        &self,
+        obj: &api::extensions::v1beta1::DaemonSet,
+        context: &Context,
+    ) {
+        Self::check_supported_version(&KubeVersion::new(1, 9), &context, obj.metadata());
+    }
+
+    fn apps_v1beta2_daemon_set(
+        &self,
+        obj: &api::apps::v1beta2::DaemonSet,
+        context: &Context,
+    ) {
+        Self::check_supported_version(&KubeVersion::new(1, 9), &context, obj.metadata());
+    }
+
+    fn extensions_v1beta1_deployment(
+        &self,
+        obj: &api::extensions::v1beta1::Deployment,
+        context: &Context,
+    ) {
+        Self::check_supported_version(&KubeVersion::new(1, 9), &context, obj.metadata());
+    }
+
+    fn apps_v1beta2_deployment(
+        &self,
+        obj: &api::apps::v1beta2::Deployment,
+        context: &Context,
+    ) {
+        // println!("Deployment v1beta2: {:?}", obj);
+        Self::check_supported_version(&KubeVersion::new(1, 9), &context, obj.metadata());
+    }
+
+    fn extensions_v1beta1_replica_set(
+        &self,
+        obj: &api::extensions::v1beta1::ReplicaSet,
+        context: &Context,
+    ) {
+        Self::check_supported_version(&KubeVersion::new(1, 9), &context, obj.metadata());
+    }
+
+    fn apps_v1beta2_replica_set(
+        &self,
+        obj: &api::apps::v1beta2::ReplicaSet,
+        context: &Context,
+    ) {
+        Self::check_supported_version(&KubeVersion::new(1, 9), &context, obj.metadata());
+    }
+
+
+    // Deprecations 1.10
+    fn extensions_v1beta1_pod_security_policy(
+        &self,
+        obj: &api::extensions::v1beta1::PodSecurityPolicy,
+        context: &Context,
+    ) {
+        Self::check_supported_version(&KubeVersion::new(1, 10), &context, obj.metadata());
+    }
+
+    // Deprecations 1.14
+    fn extensions_v1beta1_ingress(
+        &self,
+        obj: &api::extensions::v1beta1::Ingress,
+        context: &Context,
+    ) {
+        Self::check_supported_version(&KubeVersion::new(1, 14), &context, obj.metadata());
     }
 }
 

@@ -43,9 +43,9 @@ impl LintCollection {
             linters::lints::statefulset_grace_period_zero::StatefulsetGracePeriodZero::default();
 
         vec![
-            Box::new(alb_ingress),
+            // Box::new(alb_ingress),
             Box::new(linters::lints::deprecations::Deprecations {}),
-            Box::new(passwords),
+            /*Box::new(passwords),
             Box::new(never),
             Box::new(overlapping),
             Box::new(pdb_min),
@@ -53,7 +53,7 @@ impl LintCollection {
             Box::new(required),
             Box::new(role_similar),
             Box::new(service_labels),
-            Box::new(statefulset_grace_period_zero),
+            Box::new(statefulset_grace_period_zero),*/
         ]
     }
 }
