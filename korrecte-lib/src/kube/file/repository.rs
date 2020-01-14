@@ -1,15 +1,16 @@
 use crate::kube::file::KubeObjectLoader;
-use crate::kube::ObjectRepository;
+use crate::kube::{KubeVersion, ObjectRepository};
 use crate::linters::KubeObjectType;
 use anyhow::Result;
 use std::path::Path;
 
 pub struct FileObjectRepository {
     objects: Vec<KubeObjectType>,
+    version: Option<KubeVersion>,
 }
 
 impl FileObjectRepository {
-    pub fn new(path: &Path) -> Result<FileObjectRepository> {
+    pub fn new(path: &Path, version: Option<KubeVersion>) -> Result<FileObjectRepository> {
         let objects = if path.is_dir() {
             let objects: Vec<Result<KubeObjectType>> = path
                 .read_dir()?
@@ -41,6 +42,7 @@ impl FileObjectRepository {
 
         Ok(FileObjectRepository {
             objects: properly_parsed_objects,
+            version,
         })
     }
 }
@@ -48,5 +50,9 @@ impl FileObjectRepository {
 impl ObjectRepository for FileObjectRepository {
     fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = &'a KubeObjectType> + 'a> {
         Box::new(self.objects.iter())
+    }
+
+    fn version(&self) -> Option<&KubeVersion> {
+        self.version.as_ref()
     }
 }

@@ -21,7 +21,6 @@ use std::collections::{BTreeMap, HashSet};
 ///
 /// **References**
 /// - https://kubernetes-sigs.github.io/aws-alb-ingress-controller/guide/ingress/annotation/#target-type
-
 pub(crate) struct AlbIngressInstance;
 
 impl Lint for AlbIngressInstance {

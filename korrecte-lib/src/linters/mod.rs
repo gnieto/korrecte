@@ -44,7 +44,7 @@ impl LintCollection {
 
         vec![
             Box::new(alb_ingress),
-            Box::new( linters::lints::deprecations::Deprecations{} ),
+            Box::new(linters::lints::deprecations::Deprecations {}),
             Box::new(passwords),
             Box::new(never),
             Box::new(overlapping),

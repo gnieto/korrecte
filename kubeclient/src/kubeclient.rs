@@ -2,6 +2,7 @@ use crate::config::reqwest::reqwest_client;
 use crate::config::ClusterConfig;
 use anyhow::{Context, Result};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ListMeta;
+use k8s_openapi::apimachinery::pkg::version::Info;
 use k8s_openapi::Resource;
 use reqwest::Client as ReqwestClient;
 use serde::de::DeserializeOwned;
@@ -34,6 +35,17 @@ impl KubeClient {
         let body = response.text().await?;
 
         serde_json::from_str(&body).context("Error deserializing response")
+    }
+
+    pub async fn version(&self) -> Result<Info> {
+        let response = self
+            .client
+            .get(&self.build_url(&"/version/"))
+            .send()
+            .await?;
+        let body = response.text().await?;
+
+        serde_json::from_str(&body).context("Error retrieving version")
     }
 
     fn build_url(&self, path: &str) -> String {

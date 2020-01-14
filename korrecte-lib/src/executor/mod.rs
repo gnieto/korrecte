@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::kube::api_async::FrozenObjectRepository;
 use crate::kube::file::FileObjectRepository;
-use crate::kube::ObjectRepository;
+use crate::kube::{KubeVersion, ObjectRepository};
 use crate::linters::evaluator::{Evaluator, SingleEvaluator};
 use crate::linters::LintCollection;
 use crate::reporting::{Reporter, SingleThreadedReporter};
@@ -18,7 +18,7 @@ pub enum ConfigError {
 
 pub enum ExecutionMode<'a> {
     Api,
-    FileSystem(&'a Path),
+    FileSystem(&'a Path, Option<KubeVersion>),
 }
 
 #[derive(Default)]
@@ -82,10 +82,11 @@ impl<'a> Executor<'a> {
     }
 
     fn load_object_repository(&self) -> Result<Box<dyn ObjectRepository>> {
-        match self.context.mode {
-            ExecutionMode::FileSystem(path) => {
-                Ok(Box::new(FileObjectRepository::new(Path::new(path))?))
-            }
+        match &self.context.mode {
+            ExecutionMode::FileSystem(path, version) => Ok(Box::new(FileObjectRepository::new(
+                Path::new(path),
+                version.clone(),
+            )?)),
             ExecutionMode::Api => {
                 let api = crate::kube::api_async::ApiObjectRepository::new()?;
                 Ok(Box::new(FrozenObjectRepository::from(api)))

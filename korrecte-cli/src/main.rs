@@ -8,6 +8,7 @@ use korrecte::reporting::Reporter;
 use std::path::Path;
 
 use crate::view::Cli;
+use korrecte::kube::KubeVersion;
 
 fn main() -> Result<()> {
     env_logger::init();
@@ -36,8 +37,10 @@ fn get_execution_mode<'a>(matches: &'a ArgMatches) -> Option<ExecutionMode<'a>> 
         Some("api") | None => Some(ExecutionMode::Api),
         Some("file") => {
             let path = matches.value_of("path")?;
+            let kube_version = matches.value_of("kube_version").unwrap_or("");
+            let kube_version = KubeVersion::maybe_from_str(kube_version);
 
-            Some(ExecutionMode::FileSystem(Path::new(path)))
+            Some(ExecutionMode::FileSystem(Path::new(path), kube_version))
         }
         _ => None,
     }

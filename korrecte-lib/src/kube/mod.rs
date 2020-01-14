@@ -35,6 +35,27 @@ impl Identifier {
     }
 }
 
+#[derive(PartialEq, PartialOrd, Clone)]
+pub struct KubeVersion {
+    major: u16,
+    minor: u16,
+}
+
+impl KubeVersion {
+    pub fn new(major: u16, minor: u16) -> Self {
+        KubeVersion { major, minor }
+    }
+
+    pub fn maybe_from_str(version: &str) -> Option<KubeVersion> {
+        let mut split = version.split('.');
+        let major = split.next()?.parse().ok()?;
+        let minor = split.next()?.parse().ok()?;
+
+        Some(KubeVersion { major, minor })
+    }
+}
+
 pub trait ObjectRepository {
     fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = &'a KubeObjectType> + 'a>;
+    fn version(&self) -> Option<&KubeVersion>;
 }

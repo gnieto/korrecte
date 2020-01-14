@@ -25,3 +25,9 @@ args:
       value_name: FILE
       requires: source
       help: Path to yaml manifests to validate. Requires that source is set to "file".
+  - kube_version:
+      short: k
+      long: kube_version
+      value_name: FILE
+      requires: source
+      help: Assumes this kube version when ran statically. Requires that source is set to "file".

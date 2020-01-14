@@ -1,4 +1,4 @@
-use crate::kube::ObjectRepository;
+use crate::kube::{KubeVersion, ObjectRepository};
 use crate::linters::KubeObjectType;
 use ::pin_utils::pin_mut;
 use anyhow::*;
@@ -7,6 +7,7 @@ use kubeclient::config::load_config;
 use kubeclient::KubeClient;
 use std::borrow::Borrow;
 use std::pin::Pin;
+use std::str::FromStr;
 
 pub struct ApiObjectRepository {
     kubeclient: KubeClient,
@@ -269,15 +270,26 @@ impl ApiObjectRepository {
 
 pub struct FrozenObjectRepository {
     objects: Vec<KubeObjectType>,
+    version: Option<KubeVersion>,
 }
 
 impl From<ApiObjectRepository> for FrozenObjectRepository {
     fn from(api: ApiObjectRepository) -> Self {
         let rt = tokio::runtime::Runtime::new().unwrap();
+
+        let version = rt.block_on(api.kubeclient.version()).unwrap();
+        let major = u16::from_str(&version.major);
+        let minor = u16::from_str(&version.minor);
+        let version = match (major, minor) {
+            (Ok(maj), Ok(min)) => Some(KubeVersion::new(maj, min)),
+            _ => None,
+        };
+
         let all_objects = rt.block_on(api.load_all_objects()).unwrap();
 
         FrozenObjectRepository {
             objects: all_objects,
+            version,
         }
     }
 }
@@ -285,5 +297,9 @@ impl From<ApiObjectRepository> for FrozenObjectRepository {
 impl ObjectRepository for FrozenObjectRepository {
     fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = &'a KubeObjectType> + 'a> {
         Box::new(self.objects.iter())
+    }
+
+    fn version(&self) -> Option<&KubeVersion> {
+        self.version.as_ref()
     }
 }
