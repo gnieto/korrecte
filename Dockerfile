@@ -5,6 +5,7 @@ COPY ./Cargo.toml .
 COPY ./Cargo.lock .
 COPY ./korrecte-autogen/ /source/korrecte-autogen/
 COPY ./korrecte-cli/ /source/korrecte-cli/
+COPY ./korrecte-dev/ /source/korrecte-dev/
 COPY ./korrecte-lib/ /source/korrecte-lib/
 COPY ./korrecte-web/ /source/korrecte-web/
 COPY ./kubeclient/ /source/kubeclient/
