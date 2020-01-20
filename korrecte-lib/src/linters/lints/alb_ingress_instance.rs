@@ -1,4 +1,4 @@
-use crate::linters::{Group, KubeObjectType, Lint, LintSpec};
+use crate::linters::{KubeObjectType, Lint};
 
 use crate::f;
 use crate::linters::evaluator::Context;
@@ -10,23 +10,13 @@ use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use std::collections::hash_map::RandomState;
 use std::collections::{BTreeMap, HashSet};
 
-/// **What it does:** Checks that all ALB ingresses are linked to services which have compatible types
-/// with the ingress. When the ingress is configured with target-type `instance`, only `NodePort` and `LoadBalancer`
-/// types are allowed; when it's configured as `ip`, only `ClusterIP` services are allowed.
-///
-/// **Why is this bad?** ALB ingress controller will fail to create the associated ALB if services
-/// have incompatible types.
-///
-/// **Known problems:**
-///
-/// **References**
-/// - https://kubernetes-sigs.github.io/aws-alb-ingress-controller/guide/ingress/annotation/#target-type
-
 pub(crate) struct AlbIngressInstance;
+
+const LINT_NAME: &str = "alb_ingress_controller_instance_misconfiguration";
 
 impl Lint for AlbIngressInstance {
     fn name(&self) -> &str {
-        "alb_ingress_controller_instance_misconfiguration"
+        LINT_NAME
     }
 
     fn networking_v1beta1_ingress(&self, ingress: &Ingress, context: &Context) {
@@ -200,14 +190,13 @@ impl IngressExt for LegacyIngress {
 
 #[cfg(test)]
 mod tests {
-    use crate::linters::lints::alb_ingress_instance::AlbIngressInstance;
     use crate::tests::{analyze_file, filter_findings_by};
     use std::path::Path;
 
     #[test]
     fn it_finds_misconfigured_services_on_alb_ingress_configured_as_instance() {
         let findings = analyze_file(Path::new("../tests/alb_ingress.yaml"));
-        let findings = filter_findings_by(findings, &AlbIngressInstance::spec());
+        let findings = filter_findings_by(findings, super::LINT_NAME);
 
         assert_eq!(2, findings.len());
         assert_eq!(findings[0].name(), "missconfigured-alb");
@@ -226,7 +215,7 @@ mod tests {
     #[test]
     fn it_finds_misconfigured_services_on_extensions_alb_ingress_configured_as_instance() {
         let findings = analyze_file(Path::new("../tests/alb_ingress_ext.yaml"));
-        let findings = filter_findings_by(findings, &AlbIngressInstance::spec());
+        let findings = filter_findings_by(findings, super::LINT_NAME);
 
         assert_eq!(1, findings.len());
         assert_eq!(findings[0].name(), "missconfigured-ext-alb");

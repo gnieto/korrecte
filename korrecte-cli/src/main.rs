@@ -26,7 +26,7 @@ fn main() -> Result<()> {
     let executor = Executor::with_context(ctx);
     let reporter = executor.execute()?;
 
-    Cli::render(&reporter.findings());
+    Cli::render(&reporter.findings())?;
 
     Ok(())
 }

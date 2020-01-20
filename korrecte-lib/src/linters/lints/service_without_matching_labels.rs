@@ -1,4 +1,4 @@
-use crate::linters::{Group, Lint, LintSpec};
+use crate::linters::Lint;
 
 use crate::f;
 use crate::linters::evaluator::Context;
@@ -9,20 +9,13 @@ use k8s_openapi::api::core::v1::Service;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use std::collections::BTreeMap;
 
-/// **What it does:** Checks that services are well defined and has some matching
-/// object (defined by the service selector).
-///
-/// **Why is this bad?** A service without any matching pod is usually a symptom of a
-/// bad configuration
-///
-/// **Known problems:** Sending data to that service may provoke failures
-///
-/// **References**
+const LINT_NAME: &str = "service_without_matching_labels";
+
 pub(crate) struct ServiceWithoutMatchingLabels;
 
 impl Lint for ServiceWithoutMatchingLabels {
     fn name(&self) -> &str {
-        "service_without_matching_labels"
+        LINT_NAME
     }
 
     fn core_v1_service(&self, service: &Service, context: &Context) {
@@ -72,25 +65,15 @@ impl<'a> PodSpecVisitor for MatchingPodSpec<'a> {
     }
 }
 
-impl ServiceWithoutMatchingLabels {
-    fn spec() -> LintSpec {
-        LintSpec {
-            group: Group::Configuration,
-            name: "service_without_matching_labels".to_string(),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::linters::lints::service_without_matching_labels::ServiceWithoutMatchingLabels;
     use crate::tests::{analyze_file, filter_findings_by};
     use std::path::Path;
 
     #[test]
     fn it_finds_services_without_matching_labels() {
         let findings = analyze_file(Path::new("../tests/service_without_matching_labels.yml"));
-        let findings = filter_findings_by(findings, &ServiceWithoutMatchingLabels::spec());
+        let findings = filter_findings_by(findings, super::LINT_NAME);
 
         assert_eq!(2, findings.len());
         assert_eq!("my-service", findings[0].name());

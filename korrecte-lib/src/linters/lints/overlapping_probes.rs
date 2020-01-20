@@ -1,4 +1,4 @@
-use crate::linters::{Group, KubeObjectType, Lint, LintSpec};
+use crate::linters::{KubeObjectType, Lint};
 
 use crate::linters::evaluator::Context;
 use crate::reporting::Finding;
@@ -7,21 +7,6 @@ use k8s_openapi::api::core::v1::{Container, PodSpec, Probe};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use std::time::Duration;
 
-/// **What it does:** Finds pods which liveness probe *may* execute before all readiness probes has
-/// been executed
-///
-/// **Why is this bad?** Readiness probe is used to determine if the container is ready while liveness
-/// probe is used to determine if the application is alive.
-/// Executing a liveness probe *before* the container is ready will provoke that pod change the
-/// status to failed.
-///
-/// **Known problems:** One may assume that liveness probes starts being tested once a container
-/// changes the status to `Ready`, but this is not the case (see references)
-///
-/// **References:**
-/// - https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes
-/// - https://github.com/kubernetes/kubernetes/issues/27114
-/// - https://cloud.google.com/blog/products/gcp/kubernetes-best-practices-setting-up-health-checks-with-readiness-and-liveness-probes
 #[derive(Default)]
 pub(crate) struct OverlappingProbes;
 
@@ -111,7 +96,7 @@ impl TimeFrame {
 
 #[cfg(test)]
 mod tests {
-    use crate::linters::lints::overlapping_probes::{OverlappingProbes, TimeFrame};
+    use crate::linters::lints::overlapping_probes::TimeFrame;
     use crate::tests::{analyze_file, filter_findings_by};
     use k8s_openapi::api::core::v1::Probe;
     use std::path::Path;
@@ -119,7 +104,7 @@ mod tests {
     #[test]
     fn it_finds_never_restart_errors() {
         let findings = analyze_file(Path::new("../tests/overlapping_probes.yaml"));
-        let findings = filter_findings_by(findings, &OverlappingProbes::spec());
+        let findings = filter_findings_by(findings, super::LINT_NAME);
 
         assert_eq!(1, findings.len());
         assert_eq!(findings[0].name(), "hello-node");

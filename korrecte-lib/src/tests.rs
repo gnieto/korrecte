@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::kube::file::FileObjectRepository;
 use crate::kube::ObjectRepository;
 use crate::linters::evaluator::{Evaluator, SingleEvaluator};
-use crate::linters::{LintCollection, LintSpec};
+use crate::linters::LintCollection;
 use crate::reporting::{Finding, Reporter, SingleThreadedReporter};
 use std::borrow::Borrow;
 use std::path::Path;
@@ -22,6 +22,9 @@ pub fn analyze_file(path: &Path) -> Vec<Finding> {
     analyze_file_cfg(path, Config::default())
 }
 
-pub fn filter_findings_by(findings: Vec<Finding>, spec: &LintSpec) -> Vec<Finding> {
-    findings.into_iter().filter(|f| f.spec() == spec).collect()
+pub fn filter_findings_by(findings: Vec<Finding>, name: &str) -> Vec<Finding> {
+    findings
+        .into_iter()
+        .filter(|f| f.lint_name() == name)
+        .collect()
 }

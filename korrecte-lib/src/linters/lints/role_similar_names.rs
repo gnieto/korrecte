@@ -1,4 +1,4 @@
-use crate::linters::{Group, Lint, LintSpec};
+use crate::linters::Lint;
 
 use crate::linters::evaluator::Context;
 use crate::reporting::Finding;
@@ -7,15 +7,6 @@ use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 
-/// **What it does:** Checks resources names which are similar to the default resources. For example,
-/// granting access to `daemon-set` instead of `daemonsets`.
-///
-/// **Why is this bad?** This usually is originated by a typo when writing role or cluster roles
-///
-/// **Known problems:** None
-///
-/// **References**
-/// https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#motivation
 pub(crate) struct RoleSimilarNames;
 
 // We will probably want get this information from swagger/openapi. In the meanwhile, I compiled this with: kubectl api-resources | grep -v NAME | awk '{print $1}' | sed 's/^\|$/"/g'|paste -sd,
@@ -111,15 +102,6 @@ const KUBERNETES_GROUPS: &[&str] = &[
     "scheduling.k8s.io",
     "storage.k8s.io",
 ];
-
-impl RoleSimilarNames {
-    fn spec() -> LintSpec {
-        LintSpec {
-            group: Group::Configuration,
-            name: "role_similar_names".to_string(),
-        }
-    }
-}
 
 const LINT_NAME: &str = "role_similar_names";
 
@@ -272,7 +254,6 @@ pub struct SimilarName {
 
 #[cfg(test)]
 mod tests {
-    use crate::linters::lints::role_similar_names::RoleSimilarNames;
     use crate::reporting::Finding;
     use crate::tests::{analyze_file, filter_findings_by};
     use std::path::Path;
@@ -280,7 +261,7 @@ mod tests {
     #[test]
     fn it_finds_similar_object_names_on_cluster_role() {
         let findings = analyze_file(Path::new("../tests/role_similar_names_cluster_role.yaml"));
-        let findings = filter_findings_by(findings, &RoleSimilarNames::spec());
+        let findings = filter_findings_by(findings, super::LINT_NAME);
 
         assert!(has_suggestion(
             &findings,
@@ -324,7 +305,7 @@ mod tests {
     #[test]
     fn it_finds_similar_object_names_on_role() {
         let findings = analyze_file(Path::new("../tests/role_similar_names_role.yaml"));
-        let findings = filter_findings_by(findings, &RoleSimilarNames::spec());
+        let findings = filter_findings_by(findings, super::LINT_NAME);
 
         assert!(has_suggestion(&findings, "korrecte-role", "a", ""));
         assert!(has_suggestion(

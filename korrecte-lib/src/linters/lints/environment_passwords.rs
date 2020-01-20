@@ -1,4 +1,4 @@
-use crate::linters::{Group, KubeObjectType, Lint, LintSpec};
+use crate::linters::{KubeObjectType, Lint};
 
 use crate::linters::evaluator::Context;
 use crate::reporting::Finding;
@@ -8,16 +8,6 @@ use k8s_openapi::api::core::v1::{Container, EnvVar};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use serde::Deserialize;
 
-/// **What it does:** Finds passwords or keys on object manifests.
-///
-/// **Why is this bad?** This passwords or keys are visible to anyone with access to this manifests.
-/// You can use `secret` objects and inject them through enviorment variables.
-///
-/// **Known problems:**
-///
-/// **References:**
-/// - https://kubernetes.io/docs/concepts/configuration/secret/
-/// - https://kubernetes.io/docs/tasks/inject-data-application/distribute-credentials-secure/
 pub(crate) struct EnvironmentPasswords {
     config: Config,
 }
@@ -114,14 +104,14 @@ fn default_environment_vars() -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
-    use crate::linters::lints::environment_passwords::{Config, EnvironmentPasswords};
+    use crate::linters::lints::environment_passwords::Config;
     use crate::tests::{analyze_file, analyze_file_cfg, filter_findings_by};
     use std::path::Path;
 
     #[test]
     fn it_finds_passwords_on_pods() {
         let findings = analyze_file(Path::new("../tests/secret_on_env_var.yaml"));
-        let findings = filter_findings_by(findings, &EnvironmentPasswords::spec());
+        let findings = filter_findings_by(findings, super::LINT_NAME);
 
         assert_eq!(4, findings.len());
 
@@ -151,7 +141,7 @@ mod tests {
 
         let findings =
             analyze_file_cfg(Path::new("../tests/secret_on_env_var.yaml"), global_config);
-        let findings = filter_findings_by(findings, &EnvironmentPasswords::spec());
+        let findings = filter_findings_by(findings, super::LINT_NAME);
 
         assert_eq!(2, findings.len());
 

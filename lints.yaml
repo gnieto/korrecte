@@ -10,3 +10,43 @@ specs:
     references:
       - "https://kubernetes.io/docs/concepts/configuration/secret/"
       - "https://kubernetes.io/docs/tasks/inject-data-application/distribute-credentials-secure/"
+  - name: never_restart_with_liveness_probe
+    group: Configuration
+    description: Finds pods which have a `Never` restart policy and have liveness probe set. Those containers which have a liveness probe will be stopped if the probe fails and it will never be restarted, which may lead the pod on a inconsistent state.
+    references:
+      - "https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes"
+  - name: overlapping_probes
+    group: Configuration
+    description: Finds pods which liveness probe *may* execute before all readiness probes has been executed- Executing a liveness probe *before* the container is ready will provoke that pod change the status to failed.
+    references:
+      - "https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes"
+      - "https://github.com/kubernetes/kubernetes/issues/27114"
+      - "https://cloud.google.com/blog/products/gcp/kubernetes-best-practices-setting-up-health-checks-with-readiness-and-liveness-probes"
+  - name: pdb_min_replicas
+    group: Configuration
+    description: Checks that pod controllers associated to a pod disruption budget has at least one more replica than PDB min_unavailable. The pod controller won't be able to be rolled out, as no pod can be evicted (as min_unavailable is >= to the amount of replicas desired). This may cause that a node can not be cordoned.
+    references:
+      - "https://itnext.io/kubernetes-in-production-poddisruptionbudget-1380009aaede"
+  - name: pod_requirements
+    group: Security
+    description: Checks for pods without resource limits. Pods without resource limits may provoke a denial-of-service of the processes running on the same node.
+    references: []
+  - name: required_labels
+    group: Audit
+    description: Checks for missing required labels. Adding labels to your pods helps organizing the cluster and improves long-term maintainability.
+    references:
+      - "https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#motivation"
+  - name: role_similar_names
+    group: Configuration
+    description: Checks resources names which are similar to the default resources. For example, granting access to `daemon-set` instead of `daemonsets`. This usually is originated by a typo when writing role or cluster roles.
+    references:
+      - "https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#motivation"
+  - name: service_without_matching_labels
+    group: Configuration
+    description: Checks that services are well defined and has some matching object (defined by the service selector). A service without any matching pod is usually a symptom of a bad configuration.
+    references: []
+  - name: statefulset_no_grace_period
+    group: Configuration
+    description: Finds stateful sets which has a pod template with graceful period equals to zero. Stateful Sets are usually used on clustered applications in which each of the components have state. This kind of application needs a proper shutdown with a given timeout, otherwise, the application may lead to an inconsistent state.
+    references:
+      - "https://kubernetes.io/docs/tasks/run-application/force-delete-stateful-set-pod/#delete-pods"

@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::linters;
-use serde::{Serialize, Deserialize};
 use anyhow::*;
+use serde::{Deserialize, Serialize};
 
 pub mod evaluator;
 mod lint;
@@ -16,12 +16,22 @@ pub enum Group {
     Security,
 }
 
+impl ToString for Group {
+    fn to_string(&self) -> String {
+        match self {
+            Group::Audit => "audit".to_string(),
+            Group::Configuration => "configuration".to_string(),
+            Group::Security => "security".to_string(),
+        }
+    }
+}
+
 #[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub struct LintSpec {
     pub group: Group,
     pub name: String,
-    // pub description: String,
-    // pub references: Vec<String>,
+    pub description: String,
+    pub references: Vec<String>,
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
@@ -30,22 +40,28 @@ struct LintCfg {
 }
 
 pub struct LintSpecLoader {
-    specs: HashMap<String, LintSpec>
+    specs: HashMap<String, LintSpec>,
 }
 
 impl LintSpecLoader {
     pub fn new() -> Result<LintSpecLoader> {
         let yaml = include_str!("../../../lints.yaml");
-        println!("{}", yaml);
         let cfg: LintCfg = serde_yaml::from_str(yaml)?;
+        let mut lint_def = HashMap::new();
 
-        println!("Specs: {:?}", cfg.specs);
+        for lc in cfg.specs {
+            lint_def.insert(lc.name.clone(), lc);
+        }
 
-        Ok(LintSpecLoader{ specs: HashMap::new() })
+        Ok(LintSpecLoader { specs: lint_def })
     }
 
-    pub fn get(&self, name: &String) -> Option<&LintSpec> {
+    pub fn get(&self, name: &str) -> Option<&LintSpec> {
         self.specs.get(name)
+    }
+
+    pub fn all(&self) -> &HashMap<String, LintSpec> {
+        &self.specs
     }
 }
 
@@ -55,8 +71,6 @@ pub struct LintCollection;
 
 impl LintCollection {
     pub fn all<'a>(cfg: Config) -> LintList<'a> {
-        let spec_loader= LintSpecLoader::new().unwrap();
-
         let alb_ingress = linters::lints::alb_ingress_instance::AlbIngressInstance {};
         let passwords = linters::lints::environment_passwords::EnvironmentPasswords::new(
             cfg.environment_passwords.clone(),

@@ -44,7 +44,20 @@ To lint a specific file, you can run:
 cargo run -- --source file --path <path to file>
 ``` 
 
-If the path is a directory, it will iterate over all the files and will apply the lints on each of them. 
+If the path is a directory, it will iterate over all the files and will apply the lints on each of them.
+
+Name|Group|Description|References
+---|---|---|---
+role_similar_names|configuration|Checks resources names which are similar to the default resources. For example, granting access to `daemon-set` instead of `daemonsets`. This usually is originated by a typo when writing role or cluster roles.|https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#motivation
+environment_passwords|security|Finds passwords or api keys on object manifests.|https://kubernetes.io/docs/concepts/configuration/secret/<br>https://kubernetes.io/docs/tasks/inject-data-application/distribute-credentials-secure/
+required_labels|audit|Checks for missing required labels. Adding labels to your pods helps organizing the cluster and improves long-term maintainability.|https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#motivation
+alb_ingress_controller_instance_misconfiguration|configuration|Checks that all ALB ingresses are linked to services which have compatible types with the ingress. When the ingress is configured with target-type `instance`, only `NodePort` and `LoadBalancer` types are allowed; when it's configured as `ip`, only `ClusterIP` services are allowed.|https://kubernetes-sigs.github.io/aws-alb-ingress-controller/guide/ingress/annotation/#target-type
+never_restart_with_liveness_probe|configuration|Finds pods which have a `Never` restart policy and have liveness probe set. Those containers which have a liveness probe will be stopped if the probe fails and it will never be restarted, which may lead the pod on a inconsistent state.|https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes
+pod_requirements|security|Checks for pods without resource limits. Pods without resource limits may provoke a denial-of-service of the processes running on the same node.|
+overlapping_probes|configuration|Finds pods which liveness probe *may* execute before all readiness probes has been executed- Executing a liveness probe *before* the container is ready will provoke that pod change the status to failed.|https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes<br>https://github.com/kubernetes/kubernetes/issues/27114<br>https://cloud.google.com/blog/products/gcp/kubernetes-best-practices-setting-up-health-checks-with-readiness-and-liveness-probes
+statefulset_no_grace_period|configuration|Finds stateful sets which has a pod template with graceful period equals to zero. Stateful Sets are usually used on clustered applications in which each of the components have state. This kind of application needs a proper shutdown with a given timeout, otherwise, the application may lead to an inconsistent state.|https://kubernetes.io/docs/tasks/run-application/force-delete-stateful-set-pod/#delete-pods
+service_without_matching_labels|configuration|Checks that services are well defined and has some matching object (defined by the service selector). A service without any matching pod is usually a symptom of a bad configuration.|
+pdb_min_replicas|configuration|Checks that pod controllers associated to a pod disruption budget has at least one more replica than PDB min_unavailable. The pod controller won't be able to be rolled out, as no pod can be evicted (as min_unavailable is >= to the amount of replicas desired). This may cause that a node can not be cordoned.|https://itnext.io/kubernetes-in-production-poddisruptionbudget-1380009aaede
 
 ## Roadmap ideas
 

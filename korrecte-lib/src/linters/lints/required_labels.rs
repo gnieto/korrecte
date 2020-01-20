@@ -1,4 +1,4 @@
-use crate::linters::{Group, Lint, LintSpec};
+use crate::linters::Lint;
 
 use crate::f;
 use crate::linters::evaluator::Context;
@@ -7,15 +7,6 @@ use k8s_openapi::api::core::v1::Pod;
 use serde::Deserialize;
 use std::collections::HashMap;
 
-/// **What it does:** Checks for missing required labels
-///
-/// **Why is this bad?** Adding labels to your pods helps organizing the cluster and
-/// improves long-term maintainability.
-///
-/// **Known problems:** None
-///
-/// **References**
-/// https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#motivation
 pub(crate) struct RequiredLabels {
     config: Config,
 }
@@ -23,13 +14,6 @@ pub(crate) struct RequiredLabels {
 impl RequiredLabels {
     pub fn new(config: Config) -> Self {
         RequiredLabels { config }
-    }
-
-    fn spec() -> LintSpec {
-        LintSpec {
-            group: Group::Audit,
-            name: "required_labels".to_string(),
-        }
     }
 }
 
@@ -58,8 +42,7 @@ impl Lint for RequiredLabels {
                 format!("{:?}", missing_labels),
             );
 
-            let finding =
-                Finding::new(self.name(), pod.metadata.clone()).with_metadata(metadata);
+            let finding = Finding::new(self.name(), pod.metadata.clone()).with_metadata(metadata);
 
             context.reporter.report(finding);
         }

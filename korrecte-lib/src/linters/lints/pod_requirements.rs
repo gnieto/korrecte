@@ -1,4 +1,4 @@
-use crate::linters::{Group, KubeObjectType, Lint, LintSpec};
+use crate::linters::{KubeObjectType, Lint};
 
 use crate::linters::evaluator::Context;
 use crate::reporting::Finding;
@@ -8,16 +8,6 @@ use k8s_openapi::api::core::v1::PodSpec;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use std::collections::BTreeMap;
 
-/// **What it does:** Checks for pods without resource limits
-///
-/// **Why is this bad?** Pods without resource limits may provoke a denial-of-service of the
-/// processes running on the same node.
-///
-/// **Known problems:** Memory limits are hard-requirements and processes will be OOM killed if they
-/// go beyond the limits. CPU limits may cause inexplicable pauses due to CFS (Completely Fair Scheduler)
-///
-/// **References**
-///
 #[derive(Default)]
 pub(crate) struct PodRequirements;
 
@@ -31,15 +21,6 @@ impl Lint for PodRequirements {
     fn object(&self, object: &KubeObjectType, context: &Context) {
         let mut visitor = PodRequirementsVisitor { context };
         pod_spec_visit(&object, &mut visitor);
-    }
-}
-
-impl PodRequirements {
-    fn spec() -> LintSpec {
-        LintSpec {
-            group: Group::Security,
-            name: "pod_requirements".to_string(),
-        }
     }
 }
 
@@ -120,14 +101,13 @@ impl<'a> PodRequirementsVisitor<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::linters::lints::pod_requirements::PodRequirements;
     use crate::tests::{analyze_file, filter_findings_by};
     use std::path::Path;
 
     #[test]
     pub fn it_does_not_find_anything_on_properly_configured_pod() {
         let findings = analyze_file(Path::new("../tests/pod_requirements.yaml"));
-        let findings = filter_findings_by(findings, &PodRequirements::spec());
+        let findings = filter_findings_by(findings, super::LINT_NAME);
 
         assert_eq!(0, findings.len());
     }
@@ -135,7 +115,7 @@ mod tests {
     #[test]
     pub fn it_finds_pods_with_missing_requirements_or_limits() {
         let findings = analyze_file(Path::new("../tests/pod_requirements_ko.yaml"));
-        let findings = filter_findings_by(findings, &PodRequirements::spec());
+        let findings = filter_findings_by(findings, super::LINT_NAME);
 
         assert_eq!(8, findings.len());
     }

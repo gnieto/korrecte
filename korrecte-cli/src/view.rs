@@ -1,7 +1,7 @@
-use colored::*;
-use korrecte::reporting::Finding;
-use korrecte::linters::LintSpecLoader;
 use anyhow::*;
+use colored::*;
+use korrecte::linters::LintSpecLoader;
+use korrecte::reporting::Finding;
 
 pub struct Cli;
 
@@ -10,7 +10,9 @@ impl Cli {
         let lint_specs = LintSpecLoader::new()?;
 
         for finding in findings {
-            let spec = lint_specs.get(finding.lint_name()).unwrap();
+            let spec = lint_specs
+                .get(finding.lint_name())
+                .ok_or_else(|| anyhow!("Missing spec for finding"))?;
 
             println!(
                 "{} on {} [{}]. Metadata: {:?}",

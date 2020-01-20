@@ -1,4 +1,4 @@
-use crate::linters::{Group, KubeObjectType, Lint, LintSpec};
+use crate::linters::{KubeObjectType, Lint};
 
 use crate::kube::ObjectRepository;
 use crate::linters::evaluator::Context;
@@ -10,16 +10,6 @@ use k8s_openapi::api::policy::v1beta1::PodDisruptionBudget;
 use k8s_openapi::apimachinery::pkg::util::intstr::IntOrString;
 use std::borrow::Borrow;
 
-/// **What it does:** Checks that pod controllers associated to a pod disruption budget has at least one more replica
-/// than PDB min_unavailable
-///
-/// **Why is this bad?** The pod controller won't be able to be rolled out, as no pod can be evicted (as min_unavailable is >= to the amount of replicas desired). This may cause
-/// that a node can not be cordoned.
-///
-/// **Known problems:** None
-///
-/// **References**
-/// - https://itnext.io/kubernetes-in-production-poddisruptionbudget-1380009aaede
 pub(crate) struct PdbMinReplicas;
 
 const LINT_NAME: &str = "pdb_min_replicas";
@@ -38,13 +28,6 @@ impl Lint for PdbMinReplicas {
 }
 
 impl PdbMinReplicas {
-    fn spec() -> LintSpec {
-        LintSpec {
-            group: Group::Configuration,
-            name: "pdb_min_replicas".to_string(),
-        }
-    }
-
     fn get_min_replicas(pdb: &PodDisruptionBudget) -> Option<i32> {
         if let Some(IntOrString::Int(amount)) = f!(pdb.spec, max_unavailable) {
             return Some(*amount);
@@ -140,24 +123,23 @@ impl PdbMinReplicas {
 
 #[cfg(test)]
 mod tests {
-    use crate::linters::lints::pdb_min_replicas::PdbMinReplicas;
     use crate::tests::{analyze_file, filter_findings_by};
     use std::path::Path;
 
     #[test]
     fn test_pdb_with_deploy_missconfigured() {
         let findings = analyze_file(Path::new("../tests/pdb_deploy_missconfigured.yaml"));
-        let findings = filter_findings_by(findings, &PdbMinReplicas::spec());
+        let findings = filter_findings_by(findings, super::LINT_NAME);
 
         assert_eq!(1, findings.len());
-        assert_eq!(findings[0].spec().name, "pdb_min_replicas");
+        assert_eq!(findings[0].lint_name(), "pdb_min_replicas");
         assert_eq!(findings[0].name(), "missconfigured-pdb");
     }
 
     #[test]
     fn test_pdb_deployment_properly_configured() {
         let findings = analyze_file(Path::new("../tests/pdb_deployment_ok.yaml"));
-        let findings = filter_findings_by(findings, &PdbMinReplicas::spec());
+        let findings = filter_findings_by(findings, super::LINT_NAME);
 
         assert_eq!(0, findings.len());
     }
@@ -165,17 +147,17 @@ mod tests {
     #[test]
     fn test_pdb_with_hpa_missconfigured() {
         let findings = analyze_file(Path::new("../tests/pdb_hpa_missconfigured.yaml"));
-        let findings = filter_findings_by(findings, &PdbMinReplicas::spec());
+        let findings = filter_findings_by(findings, super::LINT_NAME);
 
         assert_eq!(1, findings.len());
-        assert_eq!(findings[0].spec().name, "pdb_min_replicas");
+        assert_eq!(findings[0].lint_name(), "pdb_min_replicas");
         assert_eq!(findings[0].name(), "pdb-hpa-missconfigured");
     }
 
     #[test]
     fn test_pdb_hpa_ok() {
         let findings = analyze_file(Path::new("../tests/pdb_hpa_ok.yaml"));
-        let findings = filter_findings_by(findings, &PdbMinReplicas::spec());
+        let findings = filter_findings_by(findings, super::LINT_NAME);
 
         assert_eq!(0, findings.len());
     }

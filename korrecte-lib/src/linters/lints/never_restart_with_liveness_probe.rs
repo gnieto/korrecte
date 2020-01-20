@@ -1,4 +1,4 @@
-use crate::linters::{Group, KubeObjectType, Lint, LintSpec};
+use crate::linters::{KubeObjectType, Lint};
 
 use crate::linters::evaluator::Context;
 use crate::reporting::Finding;
@@ -6,15 +6,6 @@ use crate::visitor::{pod_spec_visit, PodSpecVisitor};
 use k8s_openapi::api::core::v1::PodSpec;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 
-/// **What it does:** Finds pods which have a `Never` restart policy and have liveness probe set
-///
-/// **Why is this bad?** Those containers which have a liveness probe will be stopped if the probe
-///  fails and it will never be restarted, which may lead the pod on a inconsistent state.
-///
-/// **Known problems:**
-///
-/// **References:**
-/// - https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes
 #[derive(Default)]
 pub(crate) struct NeverRestartWithLivenessProbe;
 
@@ -61,14 +52,13 @@ impl<'a> PodSpecVisitor for NeverRestartWithLivenessProbeVisitor<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::linters::lints::never_restart_with_liveness_probe::NeverRestartWithLivenessProbe;
     use crate::tests::{analyze_file, filter_findings_by};
     use std::path::Path;
 
     #[test]
     fn it_finds_never_restart_errors() {
         let findings = analyze_file(Path::new("../tests/never_restart.yaml"));
-        let findings = filter_findings_by(findings, &NeverRestartWithLivenessProbe::spec());
+        let findings = filter_findings_by(findings, super::LINT_NAME);
 
         assert_eq!(1, findings.len());
         assert_eq!(findings[0].name(), "hello-node-never-restart");

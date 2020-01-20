@@ -1,4 +1,3 @@
-use crate::linters::LintSpec;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use serde::Serialize;
 use std::cell::RefCell;
