@@ -106,7 +106,8 @@ impl<'a> OpenapiResource<'a> {
 }
 
 fn build_async_requests(resource: &OpenapiResource) -> String {
-    return format!(r#"
+    return format!(
+        r#"
         let {var} = async {{
             let pods = self.kubeclient.list::<{ty}>().await;
 
@@ -116,7 +117,11 @@ fn build_async_requests(resource: &OpenapiResource) -> String {
         }};
         pin_mut!({var});
         v.push({var});
-    "#, var = resource.clean_name(), ty = resource.fqn(), variant = resource.variant());
+    "#,
+        var = resource.clean_name(),
+        ty = resource.fqn(),
+        variant = resource.variant()
+    );
 }
 
 fn build_kube_client(specs: &[OpenapiResource]) -> String {
@@ -127,7 +132,7 @@ fn build_kube_client(specs: &[OpenapiResource]) -> String {
     }
 
     format!(
-r#"use crate::linters::KubeObjectType;
+        r#"use crate::linters::KubeObjectType;
 use crate::kube::ObjectRepository;
 use kubeclient::KubeClient;
 use kubeclient::config::load_config;
@@ -196,8 +201,9 @@ impl ObjectRepository for FrozenObjectRepository {{
         Box::new(self.objects.iter())
     }}
 }}
-"#
-    , requests.join("\n"))
+"#,
+        requests.join("\n")
+    )
 }
 
 fn build_imports() -> String {
