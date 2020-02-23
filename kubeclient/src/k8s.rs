@@ -130,6 +130,34 @@ impl Object for k8s_openapi::api::autoscaling::v1::HorizontalPodAutoscaler {
     }
 }
 
+impl Object for k8s_openapi::api::autoscaling::v2beta1::HorizontalPodAutoscaler {
+    fn prefix() -> &'static str {
+        "apis"
+    }
+
+    fn name() -> &'static str {
+        "horizontalpodautoscalers"
+    }
+
+    fn is_namespaced() -> bool {
+        true
+    }
+}
+
+impl Object for k8s_openapi::api::autoscaling::v2beta2::HorizontalPodAutoscaler {
+    fn prefix() -> &'static str {
+        "apis"
+    }
+
+    fn name() -> &'static str {
+        "horizontalpodautoscalers"
+    }
+
+    fn is_namespaced() -> bool {
+        true
+    }
+}
+
 k8s_if_ge_1_9! {
     impl Object for k8s_openapi::api::networking::v1beta1::Ingress {
         fn prefix() -> &'static str {

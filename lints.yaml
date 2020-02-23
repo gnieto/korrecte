@@ -50,3 +50,8 @@ specs:
     description: Finds stateful sets which has a pod template with graceful period equals to zero. Stateful Sets are usually used on clustered applications in which each of the components have state. This kind of application needs a proper shutdown with a given timeout, otherwise, the application may lead to an inconsistent state.
     references:
       - "https://kubernetes.io/docs/tasks/run-application/force-delete-stateful-set-pod/#delete-pods"
+  - name: hpa_no_request
+    group: Configuration
+    description: Finds HPAs which are linked to some controller which contains any container that does not set the requirement fro the target metric. On those cases, the HPA emits some warnings and is not scaling the controller as required.
+    references:
+      - "https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#how-does-the-horizontal-pod-autoscaler-work"

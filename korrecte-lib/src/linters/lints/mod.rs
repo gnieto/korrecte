@@ -8,3 +8,4 @@ pub(crate) mod required_labels;
 pub(crate) mod role_similar_names;
 pub(crate) mod service_without_matching_labels;
 pub(crate) mod statefulset_grace_period_zero;
+pub(crate) mod hpa_no_request;

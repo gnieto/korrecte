@@ -15,6 +15,8 @@ fn main() {
         OpenapiResource::new("k8s_openapi::api::apps::v1::StatefulSet"),
         OpenapiResource::new("k8s_openapi::api::policy::v1beta1::PodDisruptionBudget"),
         OpenapiResource::new("k8s_openapi::api::autoscaling::v1::HorizontalPodAutoscaler"),
+        OpenapiResource::new("k8s_openapi::api::autoscaling::v2beta1::HorizontalPodAutoscaler"),
+        OpenapiResource::new("k8s_openapi::api::autoscaling::v2beta2::HorizontalPodAutoscaler"),
         OpenapiResource::new("k8s_openapi::api::networking::v1beta1::Ingress"),
         OpenapiResource::new("k8s_openapi::api::extensions::v1beta1::Ingress"),
         OpenapiResource::new("k8s_openapi::api::rbac::v1::ClusterRole"),
@@ -236,6 +238,7 @@ fn build_lint_trait(specs: &[OpenapiResource]) -> String {
 
     format!(
         "pub trait Lint {{
+    fn name(&self) -> &str;
 {}
     fn object(&self, object: &KubeObjectType, context: &Context) {{
         match object {{

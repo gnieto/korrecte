@@ -75,6 +75,7 @@ impl LintCollection {
         let passwords = linters::lints::environment_passwords::EnvironmentPasswords::new(
             cfg.environment_passwords.clone(),
         );
+        let hpa_no_request = linters::lints::hpa_no_request::HpaNoRequest::default();
         let never = linters::lints::never_restart_with_liveness_probe::NeverRestartWithLivenessProbe::default();
         let overlapping = linters::lints::overlapping_probes::OverlappingProbes::default();
         let pdb_min = linters::lints::pdb_min_replicas::PdbMinReplicas {};
@@ -90,6 +91,7 @@ impl LintCollection {
         vec![
             Box::new(alb_ingress),
             Box::new(passwords),
+            Box::new(hpa_no_request),
             Box::new(never),
             Box::new(overlapping),
             Box::new(pdb_min),
