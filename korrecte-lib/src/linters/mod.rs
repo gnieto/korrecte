@@ -80,8 +80,7 @@ impl LintCollection {
         let overlapping = linters::lints::overlapping_probes::OverlappingProbes::default();
         let pdb_min = linters::lints::pdb_min_replicas::PdbMinReplicas {};
         let pod_requirements = linters::lints::pod_requirements::PodRequirements::default();
-        let required =
-            linters::lints::required_labels::RequiredLabels::new(cfg.required_labels);
+        let required = linters::lints::required_labels::RequiredLabels::new(cfg.required_labels);
         let role_similar = linters::lints::role_similar_names::RoleSimilarNames {};
         let service_labels =
             linters::lints::service_without_matching_labels::ServiceWithoutMatchingLabels {};

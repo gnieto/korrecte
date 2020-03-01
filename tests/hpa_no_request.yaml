@@ -29,6 +29,37 @@ spec:
             - "sleep"
             - "10000"
 ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hpa-no-mem-request
+  labels:
+    app: hpa-no-mem-request
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hpa-no-mem-request
+  template:
+    metadata:
+      labels:
+        app: hpa-no-mem-request
+    spec:
+      containers:
+        - name: pdb
+          image: busybox
+          command:
+            - "sleep"
+            - "10000"
+          resources:
+            requests:
+              memory: 10m
+        - name: missing-request
+          image: busybox
+          command:
+            - "sleep"
+            - "10000"
+---
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
@@ -40,13 +71,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: hpa-no-cpu-request
-    metrics:
-      - type: Resource
-        resource:
-          name: cpu
-          target:
-            type: Utilization
-            averageUtilization: 50
+  targetCPUUtilizationPercentage: 50
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -93,10 +118,54 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: hpa-no-cpu-request-ok
-    metrics:
-      - type: Resource
-        resource:
-          name: cpu
-          target:
-            type: Utilization
-            averageUtilization: 50
+  targetCPUUtilizationPercentage: 50
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hpa-no-cpu-request-no-cpu-request
+spec:
+  minReplicas: 2
+  maxReplicas: 5
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: hpa-no-cpu-request
+---
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hpa-no-cpu-request-v2-cpu
+spec:
+  minReplicas: 2
+  maxReplicas: 5
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: hpa-no-cpu-request
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+---
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hpa-no-cpu-request-v2-mem
+spec:
+  minReplicas: 2
+  maxReplicas: 5
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: hpa-no-mem-request
+  metrics:
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 50
