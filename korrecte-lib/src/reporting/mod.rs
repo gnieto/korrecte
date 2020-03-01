@@ -25,7 +25,7 @@ impl Finding {
 
         Finding {
             lint_name: lint_name.to_string(),
-            name: metadata.name.unwrap_or_default().clone(),
+            name: metadata.name.unwrap_or_default(),
             namespace: metadata.namespace.clone(),
             lint_metadata: HashMap::new(),
         }

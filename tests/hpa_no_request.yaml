@@ -21,7 +21,7 @@ spec:
             - "sleep"
             - "10000"
           resources:
-            request:
+            requests:
               cpu: 10mi
         - name: missing-request
           image: busybox
@@ -71,7 +71,7 @@ spec:
             - "sleep"
             - "10000"
           resources:
-            request:
+            requests:
               cpu: 10mi
         - name: another
           image: busybox
@@ -79,7 +79,7 @@ spec:
             - "sleep"
             - "10000"
           resources:
-            request:
+            requests:
               cpu: 10mi
 ---
 apiVersion: autoscaling/v1

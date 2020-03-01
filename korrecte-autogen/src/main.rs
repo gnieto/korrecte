@@ -211,6 +211,7 @@ impl ObjectRepository for FrozenObjectRepository {{
 fn build_imports() -> String {
     let mut namespaces = Vec::new();
     namespaces.push("use crate::linters::evaluator::Context;".to_string());
+    namespaces.push("use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;".to_string());
     namespaces.push("use anyhow::{Result, anyhow};".to_string());
     namespaces.join("\n")
 }
@@ -254,6 +255,8 @@ fn build_lint_trait(specs: &[OpenapiResource]) -> String {
 fn build_enum(specs: &[OpenapiResource]) -> String {
     let mut variants = String::new();
     let mut match_arms = Vec::new();
+    let mut types_arms = Vec::new();
+    let mut metadata_arms = Vec::new();
 
     for s in specs {
         let ty = s.fqn();
@@ -272,8 +275,28 @@ fn build_enum(specs: &[OpenapiResource]) -> String {
             parts.1,
             s.variant()
         );
-
         match_arms.push(match_arm_str);
+
+        let types_arm_str = format!(
+            r##"
+            KubeObjectType::{}(_) => {{
+                ty == "{}" && version == "{}" && kind == "{}"
+            }}
+            "##,
+            s.variant(),
+            parts.0,
+            parts.2,
+            parts.1,
+        );
+        types_arms.push(types_arm_str);
+
+        let metadata_arm_str = format!(
+            r##"
+            KubeObjectType::{}(ref o) => o.metadata.as_ref(),
+            "##,
+            s.variant(),
+        );
+        metadata_arms.push(metadata_arm_str);
     }
 
     format!("
@@ -296,8 +319,27 @@ impl KubeObjectType {{
 			_ => Err(anyhow!(\"Could not decode the given object type\"))
 		}}
 	}}
+
+    pub fn matches_type(&self, api_version: &str, kind: &str) -> bool {{
+        let (ty, version) = if api_version.contains('/') {{
+			let mut parts = api_version.split('/');
+			(parts.next().unwrap(), parts.next().unwrap())
+		}} else {{
+			(\"core\", api_version)
+		}};
+
+        match *self {{
+            {}
+        }}
+    }}
+
+    pub fn metadata(&self) -> Option<&ObjectMeta> {{
+        match *self {{
+            {}
+        }}
+    }}
 }}
-", variants, match_arms.join("\n"))
+", variants, match_arms.join("\n"), types_arms.join("\n"), metadata_arms.join("\n"))
 }
 
 fn write_to(content: &str, path: &str) {
