@@ -345,3 +345,93 @@ impl KubeObjectType {
         }
     }
 }
+
+impl From<k8s_openapi::api::core::v1::Node> for KubeObjectType {
+    fn from(o: k8s_openapi::api::core::v1::Node) -> Self {
+        Self::CoreV1Node(Box::new(o))
+    }
+}
+
+impl From<k8s_openapi::api::core::v1::Pod> for KubeObjectType {
+    fn from(o: k8s_openapi::api::core::v1::Pod) -> Self {
+        Self::CoreV1Pod(Box::new(o))
+    }
+}
+
+impl From<k8s_openapi::api::core::v1::Service> for KubeObjectType {
+    fn from(o: k8s_openapi::api::core::v1::Service) -> Self {
+        Self::CoreV1Service(Box::new(o))
+    }
+}
+
+impl From<k8s_openapi::api::apps::v1::DaemonSet> for KubeObjectType {
+    fn from(o: k8s_openapi::api::apps::v1::DaemonSet) -> Self {
+        Self::AppsV1DaemonSet(Box::new(o))
+    }
+}
+
+impl From<k8s_openapi::api::apps::v1::Deployment> for KubeObjectType {
+    fn from(o: k8s_openapi::api::apps::v1::Deployment) -> Self {
+        Self::AppsV1Deployment(Box::new(o))
+    }
+}
+
+impl From<k8s_openapi::api::apps::v1::ReplicaSet> for KubeObjectType {
+    fn from(o: k8s_openapi::api::apps::v1::ReplicaSet) -> Self {
+        Self::AppsV1ReplicaSet(Box::new(o))
+    }
+}
+
+impl From<k8s_openapi::api::apps::v1::StatefulSet> for KubeObjectType {
+    fn from(o: k8s_openapi::api::apps::v1::StatefulSet) -> Self {
+        Self::AppsV1StatefulSet(Box::new(o))
+    }
+}
+
+impl From<k8s_openapi::api::policy::v1beta1::PodDisruptionBudget> for KubeObjectType {
+    fn from(o: k8s_openapi::api::policy::v1beta1::PodDisruptionBudget) -> Self {
+        Self::PolicyV1beta1PodDisruptionBudget(Box::new(o))
+    }
+}
+
+impl From<k8s_openapi::api::autoscaling::v1::HorizontalPodAutoscaler> for KubeObjectType {
+    fn from(o: k8s_openapi::api::autoscaling::v1::HorizontalPodAutoscaler) -> Self {
+        Self::AutoscalingV1HorizontalPodAutoscaler(Box::new(o))
+    }
+}
+
+impl From<k8s_openapi::api::autoscaling::v2beta1::HorizontalPodAutoscaler> for KubeObjectType {
+    fn from(o: k8s_openapi::api::autoscaling::v2beta1::HorizontalPodAutoscaler) -> Self {
+        Self::AutoscalingV2beta1HorizontalPodAutoscaler(Box::new(o))
+    }
+}
+
+impl From<k8s_openapi::api::autoscaling::v2beta2::HorizontalPodAutoscaler> for KubeObjectType {
+    fn from(o: k8s_openapi::api::autoscaling::v2beta2::HorizontalPodAutoscaler) -> Self {
+        Self::AutoscalingV2beta2HorizontalPodAutoscaler(Box::new(o))
+    }
+}
+
+impl From<k8s_openapi::api::networking::v1beta1::Ingress> for KubeObjectType {
+    fn from(o: k8s_openapi::api::networking::v1beta1::Ingress) -> Self {
+        Self::NetworkingV1beta1Ingress(Box::new(o))
+    }
+}
+
+impl From<k8s_openapi::api::extensions::v1beta1::Ingress> for KubeObjectType {
+    fn from(o: k8s_openapi::api::extensions::v1beta1::Ingress) -> Self {
+        Self::ExtensionsV1beta1Ingress(Box::new(o))
+    }
+}
+
+impl From<k8s_openapi::api::rbac::v1::ClusterRole> for KubeObjectType {
+    fn from(o: k8s_openapi::api::rbac::v1::ClusterRole) -> Self {
+        Self::RbacV1ClusterRole(Box::new(o))
+    }
+}
+
+impl From<k8s_openapi::api::rbac::v1::Role> for KubeObjectType {
+    fn from(o: k8s_openapi::api::rbac::v1::Role) -> Self {
+        Self::RbacV1Role(Box::new(o))
+    }
+}

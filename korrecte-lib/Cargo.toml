@@ -5,17 +5,16 @@ authors = ["Guillem Nieto <gnieto.talo@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-k8s-openapi = { version = "0.6.0", features = ["v1_16"], default-features = false }
+k8s-openapi = { version = "0.7.1", features = ["v1_16"], default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8"
 serde_json = "1.0"
 yaml-rust = "0.4"
 toml = "0.5"
-kubeclient = { path = "../kubeclient" }
 tokio = "0.2.0-alpha.6"
 futures = "0.3.1"
-pin-utils = "0.1.0-alpha.4"
 anyhow = "1.0"
 thiserror = "1.0"
 log = "0.4"
 levenshtein = "1.0.4"
+kube = "0.28.1"

@@ -6,5 +6,4 @@ members = [
     "korrecte-dev",
     "korrecte-lib",
     "korrecte-web",
-    "kubeclient",
 ]

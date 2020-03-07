@@ -26,6 +26,7 @@ fn main() {
     let lint = build_lint_trait(&specs);
     let ns = build_imports();
     let enum_str = build_enum(&specs);
+    let from_impl = build_from_impls(&specs);
 
     let source = format!(
         "
@@ -34,8 +35,10 @@ fn main() {
 {}
 
 {}
+
+{}
 ",
-        ns, lint, enum_str
+        ns, lint, enum_str, from_impl
     );
 
     write_to(&source.trim(), "../korrecte-lib/src/linters/lint.rs");
@@ -109,79 +112,86 @@ impl<'a> OpenapiResource<'a> {
 
 fn build_async_requests(resource: &OpenapiResource) -> String {
     return format!(
-        r#"
-        let {var} = async {{
-            let pods = self.kubeclient.list::<{ty}>().await;
-
-            pods
-                .map(|list| list.items.into_iter().map(|p| KubeObjectType::{variant}(Box::new(p))).collect::<Vec<KubeObjectType>>())
-                .map_err(|e| ("{var}".to_string(), e))
-        }};
-        pin_mut!({var});
-        v.push({var});
-    "#,
-        var = resource.clean_name(),
-        ty = resource.fqn(),
-        variant = resource.variant()
+        r#"v.push(self.reflector_for::<{fqn}>("{res}").boxed());"#,
+        fqn = resource.fqn(),
+        res = resource.variant()
     );
 }
 
 fn build_kube_client(specs: &[OpenapiResource]) -> String {
-    let mut requests = Vec::new();
+    let mut reflectors = Vec::new();
 
     for s in specs {
-        requests.push(build_async_requests(s));
+        reflectors.push(build_async_requests(s));
     }
 
     format!(
-        r#"use crate::linters::KubeObjectType;
-use crate::kube::ObjectRepository;
-use kubeclient::KubeClient;
-use kubeclient::config::load_config;
-use futures::future::Future;
-use ::pin_utils::pin_mut;
-use std::pin::Pin;
+        r#"use crate::kube::ObjectRepository;
+use crate::linters::KubeObjectType;
 use anyhow::*;
-use std::borrow::Borrow;
+use futures::future::Future;
+use std::pin::Pin;
+use kube::api::{{Resource, ListParams, Meta}};
+use kube::runtime::Reflector;
+use futures::FutureExt;
+use serde::de::DeserializeOwned;
 
 pub struct ApiObjectRepository {{
-    kubeclient: KubeClient,
+    kubeclient: kube::client::APIClient,
 }}
+
+type ReflectorFuture<'a> = Box<dyn Future<Output=Result<Vec<KubeObjectType>, anyhow::Error>> + 'a>;
 
 impl ApiObjectRepository {{
     pub fn new() -> Result<Self> {{
-        let config = load_config()
-            .with_context(|| "Could not load kubernetes config")?;
-        let kubeclient = KubeClient::new(config.borrow())
-            .with_context(|| "Could not create a kubeclient with the given configuration".to_string())?;
-
-        Ok(Self {{
-            kubeclient,
-        }})
+        let config = futures::executor::block_on(kube::config::load_kube_config())?;
+        let kubeclient = kube::client::APIClient::new(config);
+        Ok(Self {{ kubeclient }})
     }}
 
     pub async fn load_all_objects(&self) -> Result<Vec<KubeObjectType>, ()> {{
-        let mut v: Vec<Pin<&mut dyn Future<Output = Result<Vec<KubeObjectType>, (String, anyhow::Error)>>>> = Vec::new();
+        let mut v: Vec<Pin<ReflectorFuture>> = Vec::new();
         let mut objects = Vec::new();
 
         {}
 
-        let a: Vec<Result<Vec<KubeObjectType>, (String, anyhow::Error)>> = futures::future::join_all(v).await;
+        let all_futures: Vec<Result<Vec<KubeObjectType>, anyhow::Error>> =
+            futures::future::join_all(v).await;
 
-        for r in a {{
-            if r.is_err() {{
-                let (ty, _) = r.err().unwrap();
-                println!("Found some error while loading {{}} from kubernetes", ty);
-                continue;
+        for f in all_futures {{
+            match f {{
+                Err(ref e) => println!("Error loading some resource: {{}}", e),
+                Ok(current) => objects.extend(current),
             }}
-
-            let res = r.unwrap();
-            objects.extend(res);
         }}
 
         Ok(objects)
     }}
+
+    pub async fn reflector_for<R: ReflectorFor>(&self, ty: &'static str) -> Result<Vec<KubeObjectType>, anyhow::Error> {{
+        let client = self.kubeclient.clone();
+
+        let reflector = Reflector::<R>::new(
+            client,
+            ListParams::default(),
+            Resource::all::<R>()
+        );
+        let reflector = reflector.init().await?;
+
+        reflector
+            .state()
+            .await
+            .map(|objects| {{
+                objects.iter()
+                    .map(|obj| obj.clone().into())
+                    .collect()
+            }})
+            .map_err(|e| anyhow!("Err loading {{}}: {{}}", ty, e))
+    }}
 }}
+
+pub trait ReflectorFor: Clone+Send+Meta+DeserializeOwned+Into<KubeObjectType> {{}}
+impl<T: Clone+Send+Meta+DeserializeOwned+Into<KubeObjectType>> ReflectorFor for T {{}}
 
 pub struct FrozenObjectRepository {{
     objects: Vec<KubeObjectType>,
@@ -189,7 +199,7 @@ pub struct FrozenObjectRepository {{
 
 impl From<ApiObjectRepository> for FrozenObjectRepository {{
     fn from(api: ApiObjectRepository) -> Self {{
-        let rt = tokio::runtime::Runtime::new().unwrap();
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
         let all_objects = rt.block_on(api.load_all_objects()).unwrap();
 
         FrozenObjectRepository {{
@@ -199,12 +209,12 @@ impl From<ApiObjectRepository> for FrozenObjectRepository {{
 }}
 
 impl ObjectRepository for FrozenObjectRepository {{
-    fn iter<'a>(&'a self) -> Box<dyn Iterator<Item=&'a KubeObjectType> + 'a> {{
+    fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = &'a KubeObjectType> + 'a> {{
         Box::new(self.objects.iter())
     }}
 }}
 "#,
-        requests.join("\n")
+        reflectors.join("\n")
     )
 }
 
@@ -250,6 +260,28 @@ fn build_lint_trait(specs: &[OpenapiResource]) -> String {
         spec_str,
         match_arm.join("\n")
     )
+}
+
+fn build_from_impls(specs: &[OpenapiResource]) -> String {
+    let mut froms = Vec::new();
+
+    for s in specs {
+        let template = format!(
+            r##"
+impl From<{}> for KubeObjectType {{
+    fn from(o: {}) -> Self {{
+        Self::{}(Box::new(o))
+    }}
+}}"##,
+            s.fqn(),
+            s.fqn(),
+            s.variant()
+        );
+
+        froms.push(template)
+    }
+
+    froms.join("\n")
 }
 
 fn build_enum(specs: &[OpenapiResource]) -> String {

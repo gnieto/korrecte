@@ -1,305 +1,136 @@
 use crate::kube::ObjectRepository;
 use crate::linters::KubeObjectType;
-use ::pin_utils::pin_mut;
 use anyhow::*;
 use futures::future::Future;
-use kubeclient::config::load_config;
-use kubeclient::KubeClient;
-use std::borrow::Borrow;
+use futures::FutureExt;
+use kube::api::{ListParams, Meta, Resource};
+use kube::runtime::Reflector;
+use serde::de::DeserializeOwned;
 use std::pin::Pin;
 
 pub struct ApiObjectRepository {
-    kubeclient: KubeClient,
+    kubeclient: kube::client::APIClient,
 }
+
+type ReflectorFuture<'a> =
+    Box<dyn Future<Output = Result<Vec<KubeObjectType>, anyhow::Error>> + 'a>;
 
 impl ApiObjectRepository {
     pub fn new() -> Result<Self> {
-        let config = load_config().with_context(|| "Could not load kubernetes config")?;
-        let kubeclient = KubeClient::new(config.borrow()).with_context(|| {
-            "Could not create a kubeclient with the given configuration".to_string()
-        })?;
-
+        let config = futures::executor::block_on(kube::config::load_kube_config())?;
+        let kubeclient = kube::client::APIClient::new(config);
         Ok(Self { kubeclient })
     }
 
     pub async fn load_all_objects(&self) -> Result<Vec<KubeObjectType>, ()> {
-        let mut v: Vec<
-            Pin<&mut dyn Future<Output = Result<Vec<KubeObjectType>, (String, anyhow::Error)>>>,
-        > = Vec::new();
+        let mut v: Vec<Pin<ReflectorFuture>> = Vec::new();
         let mut objects = Vec::new();
 
-        let node = async {
-            let pods = self
-                .kubeclient
-                .list::<k8s_openapi::api::core::v1::Node>()
-                .await;
+        v.push(
+            self.reflector_for::<k8s_openapi::api::core::v1::Node>("CoreV1Node")
+                .boxed(),
+        );
+        v.push(
+            self.reflector_for::<k8s_openapi::api::core::v1::Pod>("CoreV1Pod")
+                .boxed(),
+        );
+        v.push(
+            self.reflector_for::<k8s_openapi::api::core::v1::Service>("CoreV1Service")
+                .boxed(),
+        );
+        v.push(
+            self.reflector_for::<k8s_openapi::api::apps::v1::DaemonSet>("AppsV1DaemonSet")
+                .boxed(),
+        );
+        v.push(
+            self.reflector_for::<k8s_openapi::api::apps::v1::Deployment>("AppsV1Deployment")
+                .boxed(),
+        );
+        v.push(
+            self.reflector_for::<k8s_openapi::api::apps::v1::ReplicaSet>("AppsV1ReplicaSet")
+                .boxed(),
+        );
+        v.push(
+            self.reflector_for::<k8s_openapi::api::apps::v1::StatefulSet>("AppsV1StatefulSet")
+                .boxed(),
+        );
+        v.push(
+            self.reflector_for::<k8s_openapi::api::policy::v1beta1::PodDisruptionBudget>(
+                "PolicyV1beta1PodDisruptionBudget",
+            )
+            .boxed(),
+        );
+        v.push(
+            self.reflector_for::<k8s_openapi::api::autoscaling::v1::HorizontalPodAutoscaler>(
+                "AutoscalingV1HorizontalPodAutoscaler",
+            )
+            .boxed(),
+        );
+        v.push(
+            self.reflector_for::<k8s_openapi::api::autoscaling::v2beta1::HorizontalPodAutoscaler>(
+                "AutoscalingV2beta1HorizontalPodAutoscaler",
+            )
+            .boxed(),
+        );
+        v.push(
+            self.reflector_for::<k8s_openapi::api::autoscaling::v2beta2::HorizontalPodAutoscaler>(
+                "AutoscalingV2beta2HorizontalPodAutoscaler",
+            )
+            .boxed(),
+        );
+        v.push(
+            self.reflector_for::<k8s_openapi::api::networking::v1beta1::Ingress>(
+                "NetworkingV1beta1Ingress",
+            )
+            .boxed(),
+        );
+        v.push(
+            self.reflector_for::<k8s_openapi::api::extensions::v1beta1::Ingress>(
+                "ExtensionsV1beta1Ingress",
+            )
+            .boxed(),
+        );
+        v.push(
+            self.reflector_for::<k8s_openapi::api::rbac::v1::ClusterRole>("RbacV1ClusterRole")
+                .boxed(),
+        );
+        v.push(
+            self.reflector_for::<k8s_openapi::api::rbac::v1::Role>("RbacV1Role")
+                .boxed(),
+        );
 
-            pods.map(|list| {
-                list.items
-                    .into_iter()
-                    .map(|p| KubeObjectType::CoreV1Node(Box::new(p)))
-                    .collect::<Vec<KubeObjectType>>()
-            })
-            .map_err(|e| ("node".to_string(), e))
-        };
-        pin_mut!(node);
-        v.push(node);
-
-        let pod = async {
-            let pods = self
-                .kubeclient
-                .list::<k8s_openapi::api::core::v1::Pod>()
-                .await;
-
-            pods.map(|list| {
-                list.items
-                    .into_iter()
-                    .map(|p| KubeObjectType::CoreV1Pod(Box::new(p)))
-                    .collect::<Vec<KubeObjectType>>()
-            })
-            .map_err(|e| ("pod".to_string(), e))
-        };
-        pin_mut!(pod);
-        v.push(pod);
-
-        let service = async {
-            let pods = self
-                .kubeclient
-                .list::<k8s_openapi::api::core::v1::Service>()
-                .await;
-
-            pods.map(|list| {
-                list.items
-                    .into_iter()
-                    .map(|p| KubeObjectType::CoreV1Service(Box::new(p)))
-                    .collect::<Vec<KubeObjectType>>()
-            })
-            .map_err(|e| ("service".to_string(), e))
-        };
-        pin_mut!(service);
-        v.push(service);
-
-        let daemon_set = async {
-            let pods = self
-                .kubeclient
-                .list::<k8s_openapi::api::apps::v1::DaemonSet>()
-                .await;
-
-            pods.map(|list| {
-                list.items
-                    .into_iter()
-                    .map(|p| KubeObjectType::AppsV1DaemonSet(Box::new(p)))
-                    .collect::<Vec<KubeObjectType>>()
-            })
-            .map_err(|e| ("daemon_set".to_string(), e))
-        };
-        pin_mut!(daemon_set);
-        v.push(daemon_set);
-
-        let deployment = async {
-            let pods = self
-                .kubeclient
-                .list::<k8s_openapi::api::apps::v1::Deployment>()
-                .await;
-
-            pods.map(|list| {
-                list.items
-                    .into_iter()
-                    .map(|p| KubeObjectType::AppsV1Deployment(Box::new(p)))
-                    .collect::<Vec<KubeObjectType>>()
-            })
-            .map_err(|e| ("deployment".to_string(), e))
-        };
-        pin_mut!(deployment);
-        v.push(deployment);
-
-        let replica_set = async {
-            let pods = self
-                .kubeclient
-                .list::<k8s_openapi::api::apps::v1::ReplicaSet>()
-                .await;
-
-            pods.map(|list| {
-                list.items
-                    .into_iter()
-                    .map(|p| KubeObjectType::AppsV1ReplicaSet(Box::new(p)))
-                    .collect::<Vec<KubeObjectType>>()
-            })
-            .map_err(|e| ("replica_set".to_string(), e))
-        };
-        pin_mut!(replica_set);
-        v.push(replica_set);
-
-        let stateful_set = async {
-            let pods = self
-                .kubeclient
-                .list::<k8s_openapi::api::apps::v1::StatefulSet>()
-                .await;
-
-            pods.map(|list| {
-                list.items
-                    .into_iter()
-                    .map(|p| KubeObjectType::AppsV1StatefulSet(Box::new(p)))
-                    .collect::<Vec<KubeObjectType>>()
-            })
-            .map_err(|e| ("stateful_set".to_string(), e))
-        };
-        pin_mut!(stateful_set);
-        v.push(stateful_set);
-
-        let pod_disruption_budget = async {
-            let pods = self
-                .kubeclient
-                .list::<k8s_openapi::api::policy::v1beta1::PodDisruptionBudget>()
-                .await;
-
-            pods.map(|list| {
-                list.items
-                    .into_iter()
-                    .map(|p| KubeObjectType::PolicyV1beta1PodDisruptionBudget(Box::new(p)))
-                    .collect::<Vec<KubeObjectType>>()
-            })
-            .map_err(|e| ("pod_disruption_budget".to_string(), e))
-        };
-        pin_mut!(pod_disruption_budget);
-        v.push(pod_disruption_budget);
-
-        let horizontal_pod_autoscaler = async {
-            let pods = self
-                .kubeclient
-                .list::<k8s_openapi::api::autoscaling::v1::HorizontalPodAutoscaler>()
-                .await;
-
-            pods.map(|list| {
-                list.items
-                    .into_iter()
-                    .map(|p| KubeObjectType::AutoscalingV1HorizontalPodAutoscaler(Box::new(p)))
-                    .collect::<Vec<KubeObjectType>>()
-            })
-            .map_err(|e| ("horizontal_pod_autoscaler".to_string(), e))
-        };
-        pin_mut!(horizontal_pod_autoscaler);
-        v.push(horizontal_pod_autoscaler);
-
-        let horizontal_pod_autoscaler = async {
-            let pods = self
-                .kubeclient
-                .list::<k8s_openapi::api::autoscaling::v2beta1::HorizontalPodAutoscaler>()
-                .await;
-
-            pods.map(|list| {
-                list.items
-                    .into_iter()
-                    .map(|p| KubeObjectType::AutoscalingV2beta1HorizontalPodAutoscaler(Box::new(p)))
-                    .collect::<Vec<KubeObjectType>>()
-            })
-            .map_err(|e| ("horizontal_pod_autoscaler".to_string(), e))
-        };
-        pin_mut!(horizontal_pod_autoscaler);
-        v.push(horizontal_pod_autoscaler);
-
-        let horizontal_pod_autoscaler = async {
-            let pods = self
-                .kubeclient
-                .list::<k8s_openapi::api::autoscaling::v2beta2::HorizontalPodAutoscaler>()
-                .await;
-
-            pods.map(|list| {
-                list.items
-                    .into_iter()
-                    .map(|p| KubeObjectType::AutoscalingV2beta2HorizontalPodAutoscaler(Box::new(p)))
-                    .collect::<Vec<KubeObjectType>>()
-            })
-            .map_err(|e| ("horizontal_pod_autoscaler".to_string(), e))
-        };
-        pin_mut!(horizontal_pod_autoscaler);
-        v.push(horizontal_pod_autoscaler);
-
-        let ingress = async {
-            let pods = self
-                .kubeclient
-                .list::<k8s_openapi::api::networking::v1beta1::Ingress>()
-                .await;
-
-            pods.map(|list| {
-                list.items
-                    .into_iter()
-                    .map(|p| KubeObjectType::NetworkingV1beta1Ingress(Box::new(p)))
-                    .collect::<Vec<KubeObjectType>>()
-            })
-            .map_err(|e| ("ingress".to_string(), e))
-        };
-        pin_mut!(ingress);
-        v.push(ingress);
-
-        let ingress = async {
-            let pods = self
-                .kubeclient
-                .list::<k8s_openapi::api::extensions::v1beta1::Ingress>()
-                .await;
-
-            pods.map(|list| {
-                list.items
-                    .into_iter()
-                    .map(|p| KubeObjectType::ExtensionsV1beta1Ingress(Box::new(p)))
-                    .collect::<Vec<KubeObjectType>>()
-            })
-            .map_err(|e| ("ingress".to_string(), e))
-        };
-        pin_mut!(ingress);
-        v.push(ingress);
-
-        let cluster_role = async {
-            let pods = self
-                .kubeclient
-                .list::<k8s_openapi::api::rbac::v1::ClusterRole>()
-                .await;
-
-            pods.map(|list| {
-                list.items
-                    .into_iter()
-                    .map(|p| KubeObjectType::RbacV1ClusterRole(Box::new(p)))
-                    .collect::<Vec<KubeObjectType>>()
-            })
-            .map_err(|e| ("cluster_role".to_string(), e))
-        };
-        pin_mut!(cluster_role);
-        v.push(cluster_role);
-
-        let role = async {
-            let pods = self
-                .kubeclient
-                .list::<k8s_openapi::api::rbac::v1::Role>()
-                .await;
-
-            pods.map(|list| {
-                list.items
-                    .into_iter()
-                    .map(|p| KubeObjectType::RbacV1Role(Box::new(p)))
-                    .collect::<Vec<KubeObjectType>>()
-            })
-            .map_err(|e| ("role".to_string(), e))
-        };
-        pin_mut!(role);
-        v.push(role);
-
-        let a: Vec<Result<Vec<KubeObjectType>, (String, anyhow::Error)>> =
+        let all_futures: Vec<Result<Vec<KubeObjectType>, anyhow::Error>> =
             futures::future::join_all(v).await;
 
-        for r in a {
-            if r.is_err() {
-                let (ty, _) = r.err().unwrap();
-                println!("Found some error while loading {} from kubernetes", ty);
-                continue;
+        for f in all_futures {
+            match f {
+                Err(ref e) => println!("Error loading some resource: {}", e),
+                Ok(current) => objects.extend(current),
             }
-
-            let res = r.unwrap();
-            objects.extend(res);
         }
 
         Ok(objects)
     }
+
+    pub async fn reflector_for<R: ReflectorFor>(
+        &self,
+        ty: &'static str,
+    ) -> Result<Vec<KubeObjectType>, anyhow::Error> {
+        let client = self.kubeclient.clone();
+
+        let reflector = Reflector::<R>::new(client, ListParams::default(), Resource::all::<R>());
+        let reflector = reflector.init().await?;
+
+        reflector
+            .state()
+            .await
+            .map(|objects| objects.iter().map(|obj| obj.clone().into()).collect())
+            .map_err(|e| anyhow!("Err loading {}: {}", ty, e))
+    }
 }
+
+pub trait ReflectorFor: Clone + Send + Meta + DeserializeOwned + Into<KubeObjectType> {}
+impl<T: Clone + Send + Meta + DeserializeOwned + Into<KubeObjectType>> ReflectorFor for T {}
 
 pub struct FrozenObjectRepository {
     objects: Vec<KubeObjectType>,
@@ -307,7 +138,7 @@ pub struct FrozenObjectRepository {
 
 impl From<ApiObjectRepository> for FrozenObjectRepository {
     fn from(api: ApiObjectRepository) -> Self {
-        let rt = tokio::runtime::Runtime::new().unwrap();
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
         let all_objects = rt.block_on(api.load_all_objects()).unwrap();
 
         FrozenObjectRepository {
