@@ -1,4 +1,5 @@
 pub(crate) mod alb_ingress_instance;
+pub(crate) mod alb_named_sg;
 pub(crate) mod environment_passwords;
 pub(crate) mod hpa_no_request;
 pub(crate) mod never_restart_with_liveness_probe;

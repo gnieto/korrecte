@@ -55,3 +55,8 @@ specs:
     description: Finds HPAs which are linked to some controller which contains any container that does not set the requirement fro the target metric. On those cases, the HPA emits some warnings and is not scaling the controller as required.
     references:
       - "https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#how-does-the-horizontal-pod-autoscaler-work"
+  - name: alb_named_sg
+    group: Configuration
+    description: Finds ingresses of type ALB which uses identifiers instead of names on security group defintion. Using named security groups it's more semantic, less error prone and easy to verfiy that the configuration is correct.
+    references:
+      - "https://github.com/HotelsDotCom/alb-ingress-controller/blob/37cfd6fe1f0863a6d35d83d2d2faab2c72f49e9a/docs/ingress-resources.md"

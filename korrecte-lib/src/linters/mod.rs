@@ -72,6 +72,7 @@ pub struct LintCollection;
 impl LintCollection {
     pub fn all<'a>(cfg: Config) -> LintList<'a> {
         let alb_ingress = linters::lints::alb_ingress_instance::AlbIngressInstance {};
+        let alb_named_sg = linters::lints::alb_named_sg::AlbNamedSecurityGroups {};
         let passwords = linters::lints::environment_passwords::EnvironmentPasswords::new(
             cfg.environment_passwords.clone(),
         );
@@ -89,6 +90,7 @@ impl LintCollection {
 
         vec![
             Box::new(alb_ingress),
+            Box::new(alb_named_sg),
             Box::new(passwords),
             Box::new(hpa_no_request),
             Box::new(never),
