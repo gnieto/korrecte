@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::kube::api_async::FrozenObjectRepository;
 use crate::kube::file::FileObjectRepository;
 use crate::kube::ObjectRepository;
-use crate::linters::evaluator::{Evaluator, SingleEvaluator};
+use crate::linters::evaluator::{Context, Evaluator, SingleEvaluator};
 use crate::linters::LintCollection;
 use crate::reporting::{Reporter, SingleThreadedReporter};
 use anyhow::Result;
@@ -74,9 +74,16 @@ impl<'a> Executor<'a> {
     pub fn execute(self) -> Result<impl Reporter> {
         let reporter = SingleThreadedReporter::default();
         let object_repository = self.load_object_repository()?;
-        let lints = LintCollection::all(self.context.configuration);
+        let lints = LintCollection::all(&self.context.configuration);
         let evaluator = SingleEvaluator;
-        evaluator.evaluate(&reporter, &lints, &*object_repository);
+
+        let context = Context {
+            repository: &*object_repository,
+            reporter: &reporter,
+            config: &self.context.configuration.korrecte,
+        };
+
+        evaluator.evaluate(&context, &lints);
 
         Ok(reporter)
     }

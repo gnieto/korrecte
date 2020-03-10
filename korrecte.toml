@@ -1,9 +1,21 @@
+[korrecte]
+# If not empty, emit errors of objects inside this list. If ignored_namespaces is defined, this
+# configuration is ignored.
+allowed_namespaces = []
+
+# List of namespaces that won't be analyzed and won't emit errors for. This configuration has more
+# precedence than `allowed_namespaces`. If this is defined, `allowed_namespaces` configuration is ignored.
+ignored_namespaces = ["kube-system"]
+
 [required_labels]
+# List of labels that needs to be assigned to every pod
 labels = [
     "app",
 ]
 
 [environment_passwords]
+# Keywords that can't be used on environment variables without being supspicious of containing
+# sensible data
 suspicious_keys = [
     "password",
     "token",

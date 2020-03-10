@@ -70,7 +70,7 @@ pub type LintList<'a> = Vec<Box<dyn Lint + 'a>>;
 pub struct LintCollection;
 
 impl LintCollection {
-    pub fn all<'a>(cfg: Config) -> LintList<'a> {
+    pub fn all<'a>(cfg: &Config) -> LintList<'a> {
         let alb_ingress = linters::lints::alb_ingress_instance::AlbIngressInstance {};
         let alb_named_sg = linters::lints::alb_named_sg::AlbNamedSecurityGroups {};
         let passwords = linters::lints::environment_passwords::EnvironmentPasswords::new(
@@ -81,7 +81,8 @@ impl LintCollection {
         let overlapping = linters::lints::overlapping_probes::OverlappingProbes::default();
         let pdb_min = linters::lints::pdb_min_replicas::PdbMinReplicas {};
         let pod_requirements = linters::lints::pod_requirements::PodRequirements::default();
-        let required = linters::lints::required_labels::RequiredLabels::new(cfg.required_labels);
+        let required =
+            linters::lints::required_labels::RequiredLabels::new(cfg.required_labels.clone());
         let role_similar = linters::lints::role_similar_names::RoleSimilarNames {};
         let service_labels =
             linters::lints::service_without_matching_labels::ServiceWithoutMatchingLabels {};

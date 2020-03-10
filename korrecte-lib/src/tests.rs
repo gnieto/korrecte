@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::kube::file::FileObjectRepository;
 use crate::kube::ObjectRepository;
-use crate::linters::evaluator::{Evaluator, SingleEvaluator};
+use crate::linters::evaluator::{Context, Evaluator, SingleEvaluator};
 use crate::linters::LintCollection;
 use crate::reporting::{Finding, Reporter, SingleThreadedReporter};
 use std::borrow::Borrow;
@@ -10,10 +10,16 @@ use std::path::Path;
 pub fn analyze_file_cfg(path: &Path, config: Config) -> Vec<Finding> {
     let reporter = SingleThreadedReporter::default();
     let repository: Box<dyn ObjectRepository> = Box::new(FileObjectRepository::new(path).unwrap());
-    let ll = LintCollection::all(config);
+    let context = Context {
+        repository: repository.borrow(),
+        reporter: &reporter,
+        config: &config.korrecte,
+    };
+
+    let ll = LintCollection::all(&config);
 
     let evaluator = SingleEvaluator;
-    evaluator.evaluate(&reporter, &ll, repository.borrow());
+    evaluator.evaluate(&context, &ll);
 
     reporter.findings()
 }
