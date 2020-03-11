@@ -169,3 +169,15 @@ spec:
         target:
           type: Utilization
           averageUtilization: 50
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hpa-should-not-crash
+spec:
+  minReplicas: 2
+  maxReplicas: 5
+  scaleTargetRef:
+    kind: Deployment
+    name: hpa-no-cpu-request-ok
+  targetCPUUtilizationPercentage: 50

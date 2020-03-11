@@ -112,7 +112,12 @@ impl TargetExtractor {
         context.repository.iter().find(|k| {
             let current_name = f!(k.metadata(), name).map(|meta| meta.as_str());
 
-            k.matches_type(api_version.unwrap(), kind) && current_name == Some(name)
+            match api_version {
+                Some(api_version) => {
+                    k.matches_type(api_version, kind) && current_name == Some(name)
+                }
+                None => false,
+            }
         })
     }
 }
