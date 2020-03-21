@@ -60,3 +60,7 @@ specs:
     description: Finds ingresses of type ALB which uses identifiers instead of names on security group defintion. Using named security groups it's more semantic, less error prone and easy to verfiy that the configuration is correct.
     references:
       - "https://github.com/HotelsDotCom/alb-ingress-controller/blob/37cfd6fe1f0863a6d35d83d2d2faab2c72f49e9a/docs/ingress-resources.md"
+  - name: service_target_port
+    group: Configuration
+    description: Finds services which uses numeric target ports. This lint suggests to use a named port with a string for a more semanthic configuration. This is also useful to be able to create an interface for the service and delegate to the underlying pod controller which port it exposes.
+    references: []

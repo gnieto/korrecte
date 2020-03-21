@@ -84,6 +84,7 @@ impl LintCollection {
         let required =
             linters::lints::required_labels::RequiredLabels::new(cfg.required_labels.clone());
         let role_similar = linters::lints::role_similar_names::RoleSimilarNames {};
+        let service_target_port = linters::lints::service_target_port::ServiceTargetPort{};
         let service_labels =
             linters::lints::service_without_matching_labels::ServiceWithoutMatchingLabels {};
         let statefulset_grace_period_zero =
@@ -100,6 +101,7 @@ impl LintCollection {
             Box::new(pod_requirements),
             Box::new(required),
             Box::new(role_similar),
+            Box::new(service_target_port),
             Box::new(service_labels),
             Box::new(statefulset_grace_period_zero),
         ]

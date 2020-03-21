@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-not-using-named-port
+spec:
+  selector:
+    app: service-target-port
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9376
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-using-named-port
+spec:
+  selector:
+    app: service-target-port
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 'web'
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:
+  labels:
+    app: service-target-port
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: service-target-port
+  template:
+    metadata:
+      labels:
+        app: service-target-port
+    spec:
+      containers:
+        - name: pdb
+          image: busybox
+          ports:
+            - containerPort: 9376
+              name: web
+          command:
+            - "sleep"
+            - "10000"

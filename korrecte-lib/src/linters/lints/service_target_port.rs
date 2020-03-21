@@ -3,11 +3,12 @@ use crate::linters::Lint;
 use crate::f;
 use crate::linters::evaluator::Context;
 use crate::reporting::Finding;
-use crate::visitor::{visit_all_pod_specs, PodSpecVisitor};
+use crate::visitor::visit_all_pod_specs;
 use k8s_openapi::api::core::v1::PodSpec;
 use k8s_openapi::api::core::v1::Service;
-use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
+use k8s_openapi::apimachinery::pkg::util::intstr::IntOrString;
 use std::collections::BTreeMap;
+use crate::kube::service::FindFistMatchingPodSpec;
 
 const LINT_NAME: &str = "service_target_port";
 
@@ -19,7 +20,58 @@ impl Lint for ServiceTargetPort {
     }
 
     fn core_v1_service(&self, service: &Service, context: &Context) {
+        if !Self::has_numeric_port(service) {
+            return;
+        }
+        let selectors: BTreeMap<String, String> =
+            f!(service.spec, selector).cloned().unwrap_or_default();
 
+        let mut visitor = FindFistMatchingPodSpec::new(&selectors);
+        visit_all_pod_specs(context, &mut visitor);
+
+        if let Some(pod_spec) = visitor.first_matching_pod_spec() {
+
+            Self::check_pod_spec_contains_numeric_port(service, pod_spec, context);
+        }
+    }
+}
+
+impl ServiceTargetPort {
+    fn check_pod_spec_contains_numeric_port(service: &Service, pod_spec: &PodSpec, context: &Context) {
+        for ports in f!(service.spec, ports).unwrap_or(&vec![]) {
+            match ports.target_port {
+                Some(IntOrString::Int(port_number)) => Self::report_if_exists_on_spec(port_number, service, pod_spec, context),
+                _ => (),
+            }
+        }
+    }
+
+    fn report_if_exists_on_spec(port_number: i32, service: &Service, pod_spec: &PodSpec, context: &Context) {
+        for container in pod_spec.containers.iter() {
+            for port in container.ports.as_ref().unwrap_or(&vec![]) {
+                println!("QQQQQ");
+                if port_number != port.container_port {
+                    continue;
+                }
+
+                let finding = Finding::new(LINT_NAME, service.metadata.clone());
+                context.reporter.report(finding);
+            }
+        }
+    }
+
+    fn has_numeric_port(service: &Service) -> bool {
+        f!(service.spec, ports).unwrap_or(&vec![])
+            .iter()
+            .any(|port| port.target_port.as_ref()
+                .map(|target|
+                    match target {
+                        IntOrString::Int(_) => true,
+                        _ => false,
+                    }
+                )
+                .unwrap_or(false)
+            )
     }
 }
 
@@ -29,12 +81,11 @@ mod tests {
     use std::path::Path;
 
     #[test]
-    fn it_finds_services_without_matching_labels() {
-        let findings = analyze_file(Path::new("../tests/service_without_matching_labels.yml"));
+    fn it_finds_services_without_named_port() {
+        let findings = analyze_file(Path::new("../tests/service_target_port.yaml"));
         let findings = filter_findings_by(findings, super::LINT_NAME);
 
-        assert_eq!(2, findings.len());
-        assert_eq!("my-service", findings[0].name());
-        assert_eq!("multi-tag-non-match", findings[1].name());
+        assert_eq!(1, findings.len());
+        assert_eq!("service-not-using-named-port", findings[0].name());
     }
 }
