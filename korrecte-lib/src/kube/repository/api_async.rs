@@ -1,4 +1,4 @@
-use crate::kube::ObjectRepository;
+use crate::kube::repository::ObjectRepository;
 use crate::linters::KubeObjectType;
 use anyhow::*;
 use futures::future::Future;

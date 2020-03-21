@@ -1,6 +1,6 @@
 use crate::config::Config;
-use crate::kube::file::FileObjectRepository;
-use crate::kube::ObjectRepository;
+use crate::kube::repository::file::FileObjectRepository;
+use crate::kube::repository::ObjectRepository;
 use crate::linters::evaluator::{Context, Evaluator, SingleEvaluator};
 use crate::linters::LintCollection;
 use crate::reporting::{Finding, Reporter, SingleThreadedReporter};

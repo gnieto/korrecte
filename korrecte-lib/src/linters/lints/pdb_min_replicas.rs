@@ -1,6 +1,6 @@
 use crate::linters::{KubeObjectType, Lint};
 
-use crate::kube::ObjectRepository;
+use crate::kube::repository::ObjectRepository;
 use crate::linters::evaluator::Context;
 use crate::reporting::Finding;
 use crate::{f, m};

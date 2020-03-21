@@ -126,7 +126,7 @@ fn build_kube_client(specs: &[OpenapiResource]) -> String {
     }
 
     format!(
-        r#"use crate::kube::ObjectRepository;
+        r#"use crate::kube::repository::ObjectRepository;
 use crate::linters::KubeObjectType;
 use anyhow::*;
 use futures::future::Future;

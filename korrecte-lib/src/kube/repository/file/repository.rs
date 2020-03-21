@@ -1,5 +1,5 @@
-use crate::kube::file::KubeObjectLoader;
-use crate::kube::ObjectRepository;
+use crate::kube::repository::file::KubeObjectLoader;
+use crate::kube::repository::ObjectRepository;
 use crate::linters::KubeObjectType;
 use anyhow::Result;
 use std::path::Path;

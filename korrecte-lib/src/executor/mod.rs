@@ -1,7 +1,7 @@
 use crate::config::Config;
-use crate::kube::api_async::FrozenObjectRepository;
-use crate::kube::file::FileObjectRepository;
-use crate::kube::ObjectRepository;
+use crate::kube::repository::api_async::FrozenObjectRepository;
+use crate::kube::repository::file::FileObjectRepository;
+use crate::kube::repository::ObjectRepository;
 use crate::linters::evaluator::{Context, Evaluator, SingleEvaluator};
 use crate::linters::LintCollection;
 use crate::reporting::{Reporter, SingleThreadedReporter};
@@ -94,7 +94,7 @@ impl<'a> Executor<'a> {
                 Ok(Box::new(FileObjectRepository::new(Path::new(path))?))
             }
             ExecutionMode::Api => {
-                let api = crate::kube::api_async::ApiObjectRepository::new()?;
+                let api = crate::kube::repository::api_async::ApiObjectRepository::new()?;
                 Ok(Box::new(FrozenObjectRepository::from(api)))
             }
         }
