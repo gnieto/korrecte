@@ -3,31 +3,23 @@ use crate::linters::Lint;
 use crate::f;
 use crate::linters::evaluator::Context;
 use crate::reporting::Finding;
-use crate::visitor::{visit_all_pod_specs};
+use crate::visitor::{visit_all_pod_specs, PodSpecVisitor};
+use k8s_openapi::api::core::v1::PodSpec;
 use k8s_openapi::api::core::v1::Service;
+use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use std::collections::BTreeMap;
-use crate::kube::service::FindFistMatchingPodSpec;
 
-const LINT_NAME: &str = "service_without_matching_labels";
+const LINT_NAME: &str = "service_target_port";
 
-pub(crate) struct ServiceWithoutMatchingLabels;
+pub(crate) struct ServiceTargetPort;
 
-impl Lint for ServiceWithoutMatchingLabels {
+impl Lint for ServiceTargetPort {
     fn name(&self) -> &str {
         LINT_NAME
     }
 
     fn core_v1_service(&self, service: &Service, context: &Context) {
-        let selectors: BTreeMap<String, String> =
-            f!(service.spec, selector).cloned().unwrap_or_default();
 
-        let mut visitor = FindFistMatchingPodSpec::new(&selectors);
-        visit_all_pod_specs(context, &mut visitor);
-
-        if visitor.first_matching_pod_spec().is_none() {
-            let finding = Finding::new(self.name(), service.metadata.clone());
-            context.reporter.report(finding);
-        }
     }
 }
 
