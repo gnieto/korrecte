@@ -1,7 +1,7 @@
-use std::collections::BTreeMap;
 use crate::visitor::PodSpecVisitor;
 use k8s_openapi::api::core::v1::PodSpec;
 use kube::api::ObjectMeta;
+use std::collections::BTreeMap;
 
 pub(crate) struct FindFistMatchingPodSpec<'a> {
     selector: &'a BTreeMap<String, String>,
@@ -38,7 +38,7 @@ impl<'a> PodSpecVisitor for FindFistMatchingPodSpec<'a> {
             });
 
             if has_matching_labels {
-               self.any_pod_matches = Some(pod.clone());
+                self.any_pod_matches = Some(pod.clone());
             }
         }
     }

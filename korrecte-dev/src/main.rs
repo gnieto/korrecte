@@ -1,7 +1,7 @@
 use korrecte::linters::LintSpecLoader;
-use std::io::*;
 use std::fs::{File, OpenOptions};
 use std::io::Read;
+use std::io::*;
 
 fn main() {
     let spec_loader = LintSpecLoader::new().unwrap();
@@ -24,11 +24,8 @@ fn main() {
     lint_content.sort_by(|a, b| a.0.cmp(&b.0));
     buffer.extend(lint_content.into_iter().map(|p| p.1));
 
-    let new_readme = replace_readme(&buffer.join("\n"))
-        .expect("Readme could be replaced");
-    store_new_readme(&new_readme)
-        .expect("Readme could be written");
-
+    let new_readme = replace_readme(&buffer.join("\n")).expect("Readme could be replaced");
+    store_new_readme(&new_readme).expect("Readme could be written");
 }
 
 fn replace_readme(lints_info: &str) -> Result<String> {
@@ -36,16 +33,18 @@ fn replace_readme(lints_info: &str) -> Result<String> {
     let mut current_content = String::new();
     file.read_to_string(&mut current_content)?;
 
-    let mut new_content  = String::new();
-    let prelude_pos = current_content.find("## Current lints")
+    let mut new_content = String::new();
+    let prelude_pos = current_content
+        .find("## Current lints")
         .expect("Current lints string should be present on README.md");
-    let finale_pos = current_content.find("## Roadmap ideas")
+    let finale_pos = current_content
+        .find("## Roadmap ideas")
         .expect("Roadmap ideas string should be present on readme");
 
     new_content.push_str(&current_content[..prelude_pos]);
     new_content.push_str("## Current lints \n\n");
     new_content.push_str(lints_info);
-    new_content.push_str(&current_content[finale_pos-"## Roadmap ideas".len()..]);
+    new_content.push_str(&current_content[finale_pos - "## Roadmap ideas".len()..]);
 
     Ok(new_content)
 }

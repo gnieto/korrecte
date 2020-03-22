@@ -1,12 +1,12 @@
 use crate::linters::Lint;
 
 use crate::f;
+use crate::kube::service::FindFistMatchingPodSpec;
 use crate::linters::evaluator::Context;
 use crate::reporting::Finding;
-use crate::visitor::{visit_all_pod_specs};
+use crate::visitor::visit_all_pod_specs;
 use k8s_openapi::api::core::v1::Service;
 use std::collections::BTreeMap;
-use crate::kube::service::FindFistMatchingPodSpec;
 
 const LINT_NAME: &str = "service_without_matching_labels";
 
